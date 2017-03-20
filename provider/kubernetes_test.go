@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"net"
 
 	"github.com/containous/traefik/provider/k8s"
 	"github.com/containous/traefik/types"
@@ -1545,6 +1546,35 @@ func TestIngressAnnotations(t *testing.T) {
 				},
 			},
 		},
+		{
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: "testing",
+				Annotations: map[string]string{
+					"kubernetes.io/ingress.class":     "traefik",
+					"ingress.kubernetes.io/whitelist-source-range": "1.1.1.1/24, 1234:abcd::42/32",
+				},
+			},
+			Spec: v1beta1.IngressSpec{
+				Rules: []v1beta1.IngressRule{
+					{
+						Host: "test",
+						IngressRuleValue: v1beta1.IngressRuleValue{
+							HTTP: &v1beta1.HTTPIngressRuleValue{
+								Paths: []v1beta1.HTTPIngressPath{
+									{
+										Path: "/ip-source-range",
+										Backend: v1beta1.IngressBackend{
+											ServiceName: "service1",
+											ServicePort: intstr.FromInt(80),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	services := []*v1.Service{
 		{
@@ -1609,6 +1639,19 @@ func TestIngressAnnotations(t *testing.T) {
 					Method: "wrr",
 				},
 			},
+			"test/ip-source-range": {
+				Servers: map[string]types.Server{
+					"http://example.com": {
+						URL:    "http://example.com",
+						Weight: 1,
+					},
+				},
+				CircuitBreaker: nil,
+				LoadBalancer: &types.LoadBalancer{
+					Sticky: false,
+					Method: "wrr",
+				},
+			},
 		},
 		Frontends: map[string]*types.Frontend{
 			"foo/bar": {
@@ -1637,6 +1680,23 @@ func TestIngressAnnotations(t *testing.T) {
 					},
 				},
 			},
+			"test/ip-source-range": {
+				Backend:        "test/ip-source-range",
+				PassHostHeader: true,
+				IpSourceRanges: []net.IPNet{
+					makeIPNet("1.1.1.1/24"),
+					makeIPNet("1234:abcd::42/32"),
+				},
+				Priority:       len("/ip-source-range"),
+				Routes: map[string]types.Route{
+					"/ip-source-range": {
+						Rule: "PathPrefix:/ip-source-range",
+					},
+					"test": {
+						Rule: "Host:test",
+					},
+				},
+			},
 		},
 	}
 
@@ -1646,6 +1706,13 @@ func TestIngressAnnotations(t *testing.T) {
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("expected %+v, got %+v", string(expectedJSON), string(actualJSON))
 	}
+}
+func makeIPNet(s string) net.IPNet {
+	_, ipNet, err := net.ParseCIDR(s)
+	if err != nil {
+		return net.IPNet{}
+	}
+	return *ipNet;
 }
 
 func TestInvalidPassHostHeaderValue(t *testing.T) {

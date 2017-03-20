@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"net"
 
 	"github.com/cenk/backoff"
 	"github.com/containous/traefik/job"
@@ -27,6 +28,8 @@ const (
 	ruleTypePathStrip          = "PathStrip"
 	ruleTypePath               = "Path"
 	ruleTypePathPrefix         = "PathPrefix"
+
+	annotationKubernetesWhitelistSourceRange = "ingress.kubernetes.io/whitelist-source-range"
 )
 
 // Kubernetes holds configurations of the Kubernetes provider.
@@ -160,12 +163,19 @@ func (provider *Kubernetes) loadIngresses(k8sClient k8s.Client) (*types.Configur
 					log.Warnf("Unknown value of %s for traefik.frontend.passHostHeader, falling back to %s", passHostHeaderAnnotation, PassHostHeader)
 				}
 
+				ipSourceRangeString := i.Annotations[annotationKubernetesWhitelistSourceRange]
+				ipSourceRanges, err := getIpSourceRangesFromAnnotation(ipSourceRangeString)
+				if err != nil {
+					log.Warnf("Incorrect value of %s for %s, not restricting IpSourceRange", ipSourceRangeString, annotationKubernetesWhitelistSourceRange)
+				}
+
 				if _, exists := templateObjects.Frontends[r.Host+pa.Path]; !exists {
 					templateObjects.Frontends[r.Host+pa.Path] = &types.Frontend{
 						Backend:        r.Host + pa.Path,
 						PassHostHeader: PassHostHeader,
 						Routes:         make(map[string]types.Route),
 						Priority:       len(pa.Path),
+						IpSourceRanges: ipSourceRanges,
 					}
 				}
 				if len(r.Host) > 0 {
@@ -341,4 +351,32 @@ func getRuleTypeFromAnnotation(annotations map[string]string) (ruleType string, 
 	}
 
 	return ruleType, unknown
+}
+
+func getIpSourceRangesFromAnnotation(annotation string) ([]net.IPNet, error) {
+	annotation = strings.TrimSpace(annotation)
+
+	if annotation == "" {
+		return nil, nil
+	}
+
+	rangeStrings := strings.Split(annotation, ",")
+	ipNets := []net.IPNet{}
+
+	for _, rangeString := range rangeStrings {
+		rangeString = strings.TrimSpace(rangeString)
+		_, ipNet, err := net.ParseCIDR(rangeString)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ipNets = append(ipNets, *ipNet)
+	}
+
+	if len(ipNets) > 0 {
+		return ipNets, nil
+	}
+
+	return nil, nil
 }
