@@ -741,11 +741,12 @@ func (server *Server) loadConfig(configurations configs, globalConfiguration Glo
 							}
 						}
 
+						log.Info("Configured IP Whitelists: ", frontend.IpSourceRanges)
 						if len(frontend.IpSourceRanges) > 0 {
 							ipSourceRanges := frontend.IpSourceRanges
 							ipWhitelistMiddleware, err := middlewares.NewIpWhitelister(ipSourceRanges)
 							if err != nil {
-								log.Fatal("Error creating Auth: ", err)
+								log.Fatal("Error creating IP Whitelister: ", err)
 							}
 							negroni.Use(ipWhitelistMiddleware)
 						}

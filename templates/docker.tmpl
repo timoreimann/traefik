@@ -43,6 +43,9 @@
   [frontends."frontend-{{getServiceBackend $container $serviceName}}"]
   backend = "backend-{{getServiceBackend $container $serviceName}}"
   passHostHeader = {{getServicePassHostHeader $container $serviceName}}
+  ipSourceRanges = [{{range getIpWhitelists $container}}
+    "{{.}}",
+  {{end}}]
   priority = {{getServicePriority $container $serviceName}}
   entryPoints = [{{range getServiceEntryPoints $container $serviceName}}
     "{{.}}",
@@ -54,6 +57,9 @@
   [frontends."frontend-{{$frontend}}"]
   backend = "backend-{{getBackend $container}}"
   passHostHeader = {{getPassHostHeader $container}}
+  ipSourceRanges = [{{range getIpWhitelists $container}}
+    "{{.}}",
+  {{end}}]
   priority = {{getPriority $container}}
   entryPoints = [{{range getEntryPoints $container}}
     "{{.}}",

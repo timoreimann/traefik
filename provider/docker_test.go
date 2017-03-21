@@ -11,7 +11,6 @@ import (
 	"github.com/docker/engine-api/types/network"
 	"github.com/docker/engine-api/types/swarm"
 	"github.com/docker/go-connections/nat"
-	"net"
 )
 
 func TestDockerGetFrontendName(t *testing.T) {
@@ -587,7 +586,7 @@ func TestDockerGetIpWhitelist(t *testing.T) {
 	provider := &Docker{}
 	containers := []struct {
 		container docker.ContainerJSON
-		expected  []net.IPNet
+		expected  []string
 	}{
 		{
 			container: docker.ContainerJSON{
@@ -596,7 +595,7 @@ func TestDockerGetIpWhitelist(t *testing.T) {
 				},
 				Config: &container.Config{},
 			},
-			expected: []net.IPNet{},
+			expected: []string{},
 		},
 		{
 			container: docker.ContainerJSON{
@@ -610,9 +609,9 @@ func TestDockerGetIpWhitelist(t *testing.T) {
 					},
 				},
 			},
-			expected: []net.IPNet{
-				makeIpNetFromCIDR("1.1.1.1/24"),
-				makeIpNetFromCIDR("1234:abcd::42/32"),
+			expected: []string{
+				"1.1.1.1/24",
+				"1234:abcd::42/32",
 			},
 		},
 	}

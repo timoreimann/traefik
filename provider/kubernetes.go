@@ -163,9 +163,11 @@ func (provider *Kubernetes) loadIngresses(k8sClient k8s.Client) (*types.Configur
 				}
 
 				ipSourceRangeString := i.Annotations[annotationKubernetesWhitelistSourceRange]
-				ipSourceRanges, err := getIpSourceRangesFromAnnotation(ipSourceRangeString)
-				if err != nil {
-					log.Warnf("Incorrect value of %s for %s, not restricting IpSourceRange", ipSourceRangeString, annotationKubernetesWhitelistSourceRange)
+				ipSourceRangesStrings := strings.Split(ipSourceRangeString, ",")
+				ipSourceRanges := []string{}
+				for _, s := range ipSourceRangesStrings {
+					s = strings.TrimSpace(s)
+					ipSourceRanges = append(ipSourceRanges, s)
 				}
 
 				if _, exists := templateObjects.Frontends[r.Host+pa.Path]; !exists {

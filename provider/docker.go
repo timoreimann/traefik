@@ -247,7 +247,7 @@ func (provider *Docker) loadDockerConfig(containersInspected []dockerData) *type
 		"getDomain":                   provider.getDomain,
 		"getProtocol":                 provider.getProtocol,
 		"getPassHostHeader":           provider.getPassHostHeader,
-		"getIpWhitelist":              provider.getIpWhitelist,
+		"getIpWhitelists":             provider.getIpWhitelists,
 		"getPriority":                 provider.getPriority,
 		"getEntryPoints":              provider.getEntryPoints,
 		"getFrontendRule":             provider.getFrontendRule,
@@ -622,13 +622,17 @@ func (provider *Docker) getPassHostHeader(container dockerData) string {
 	return "true"
 }
 
-func (provider *Docker) getIpWhitelist(container dockerData) []net.IPNet {
+func (provider *Docker) getIpWhitelists(container dockerData) []string {
+	ipSourceRanges := []string{}
+
 	if ipSourceRangeHeader, err := getLabel(container, "traefik.frontend.whitelist-source-range"); err == nil {
-		if ipNets, err := getIpSourceRangesFromAnnotation(ipSourceRangeHeader); err == nil {
-			return ipNets
+		ipSourceRangesStrings := strings.Split(ipSourceRangeHeader, ",")
+		for _, s := range ipSourceRangesStrings {
+			s = strings.TrimSpace(s)
+			ipSourceRanges = append(ipSourceRanges, s)
 		}
 	}
-	return []net.IPNet{}
+	return ipSourceRanges
 }
 
 func (provider *Docker) getPriority(container dockerData) string {

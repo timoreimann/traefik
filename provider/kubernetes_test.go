@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"net"
 
 	"github.com/containous/traefik/provider/k8s"
 	"github.com/containous/traefik/types"
@@ -1683,9 +1682,9 @@ func TestIngressAnnotations(t *testing.T) {
 			"test/ip-source-range": {
 				Backend:        "test/ip-source-range",
 				PassHostHeader: true,
-				IpSourceRanges: []net.IPNet{
-					makeIpNetFromCIDR("1.1.1.1/24"),
-					makeIpNetFromCIDR("1234:abcd::42/32"),
+				IpSourceRanges: []string{
+					"1.1.1.1/24",
+					"1234:abcd::42/32",
 				},
 				Priority:       len("/ip-source-range"),
 				Routes: map[string]types.Route{

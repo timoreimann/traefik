@@ -7,20 +7,29 @@ import (
 	"github.com/containous/traefik/log"
 	"fmt"
 )
-// Authenticator is a middleware that provides HTTP basic and digest authentication
+// IpWhitelister is a middleware that provides Checks of the Requesting IP against a set of Whitelists
 type IpWhitelister struct {
 	handler   negroni.Handler
-	whitelist []net.IPNet
+	whitelists []*net.IPNet
 }
 
-func NewIpWhitelister(whitelist []net.IPNet) (*IpWhitelister, error) {
+func NewIpWhitelister(whitelistStrings []string) (*IpWhitelister, error) {
 	whitelister := IpWhitelister{}
 
-	if(len(whitelist) < 1) {
-		return nil, fmt.Errorf("Error creating IpWhitelister: whitelist is empty")
+	if(len(whitelistStrings) < 1) {
+		return nil, fmt.Errorf("Error creating IpWhitelister: no whitelists provided")
 	}
 
-	whitelister.whitelist = whitelist
+	whitelists := []*net.IPNet{}
+	for _, whitelistString := range whitelistStrings {
+		_, whitelist, err := net.ParseCIDR(whitelistString)
+		if err != nil {
+			return nil, fmt.Errorf("Error PArsing CIDR Whitelist %s: %s", whitelist, err)
+		}
+		whitelists = append(whitelists, whitelist)
+	}
+
+	whitelister.whitelists = whitelists
 	whitelister.handler = negroni.HandlerFunc(func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		var match *net.IPNet = nil
 
@@ -30,9 +39,9 @@ func NewIpWhitelister(whitelist []net.IPNet) (*IpWhitelister, error) {
 			reject(w)
 		}
 
-		for _, ipNet := range whitelist {
-			if ipNet.Contains(*remoteIp) {
-				match = &ipNet
+		for _, whitelist := range whitelists {
+			if whitelist.Contains(*remoteIp) {
+				match = whitelist
 				break
 			}
 		}
@@ -40,7 +49,7 @@ func NewIpWhitelister(whitelist []net.IPNet) (*IpWhitelister, error) {
 			log.Debugf("Source-IP %s matched whitelist %s, passing", remoteIp, match)
 			next.ServeHTTP(w, r)
 		} else {
-			log.Debugf("Source-IP %s matched none of the %s whitelists, rejecting", len(whitelist))
+			log.Debugf("Source-IP %s matched none of the %d whitelists, rejecting", remoteIp, len(whitelists))
 			reject(w)
 		}
 	})
