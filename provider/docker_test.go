@@ -11,6 +11,7 @@ import (
 	"github.com/docker/engine-api/types/network"
 	"github.com/docker/engine-api/types/swarm"
 	"github.com/docker/go-connections/nat"
+	"net"
 )
 
 func TestDockerGetFrontendName(t *testing.T) {
@@ -577,6 +578,49 @@ func TestDockerGetPassHostHeader(t *testing.T) {
 		dockerData := parseContainer(e.container)
 		actual := provider.getPassHostHeader(dockerData)
 		if actual != e.expected {
+			t.Fatalf("expected %q, got %q", e.expected, actual)
+		}
+	}
+}
+
+func TestDockerGetIpWhitelist(t *testing.T) {
+	provider := &Docker{}
+	containers := []struct {
+		container docker.ContainerJSON
+		expected  []net.IPNet
+	}{
+		{
+			container: docker.ContainerJSON{
+				ContainerJSONBase: &docker.ContainerJSONBase{
+					Name: "foo",
+				},
+				Config: &container.Config{},
+			},
+			expected: []net.IPNet{},
+		},
+		{
+			container: docker.ContainerJSON{
+				ContainerJSONBase: &docker.ContainerJSONBase{
+					Name: "test",
+				},
+				Config: &container.Config{
+					Labels: map[string]string{
+						"traefik.frontend.passHostHeader": "false",
+						"traefik.frontend.whitelist-source-range": "1.1.1.1/24, 1234:abcd::42/32",
+					},
+				},
+			},
+			expected: []net.IPNet{
+				makeIpNetFromCIDR("1.1.1.1/24"),
+				makeIpNetFromCIDR("1234:abcd::42/32"),
+			},
+		},
+	}
+
+	for _, e := range containers {
+		dockerData := parseContainer(e.container)
+		actual := provider.getIpWhitelist(dockerData)
+		if !reflect.DeepEqual(actual, e.expected) {
 			t.Fatalf("expected %q, got %q", e.expected, actual)
 		}
 	}

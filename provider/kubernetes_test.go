@@ -1684,8 +1684,8 @@ func TestIngressAnnotations(t *testing.T) {
 				Backend:        "test/ip-source-range",
 				PassHostHeader: true,
 				IpSourceRanges: []net.IPNet{
-					makeIPNet("1.1.1.1/24"),
-					makeIPNet("1234:abcd::42/32"),
+					makeIpNetFromCIDR("1.1.1.1/24"),
+					makeIpNetFromCIDR("1234:abcd::42/32"),
 				},
 				Priority:       len("/ip-source-range"),
 				Routes: map[string]types.Route{
@@ -1706,13 +1706,6 @@ func TestIngressAnnotations(t *testing.T) {
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("expected %+v, got %+v", string(expectedJSON), string(actualJSON))
 	}
-}
-func makeIPNet(s string) net.IPNet {
-	_, ipNet, err := net.ParseCIDR(s)
-	if err != nil {
-		return net.IPNet{}
-	}
-	return *ipNet;
 }
 
 func TestInvalidPassHostHeaderValue(t *testing.T) {

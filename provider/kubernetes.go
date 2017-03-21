@@ -8,7 +8,6 @@ import (
 	"strings"
 	"text/template"
 	"time"
-	"net"
 
 	"github.com/cenk/backoff"
 	"github.com/containous/traefik/job"
@@ -351,32 +350,4 @@ func getRuleTypeFromAnnotation(annotations map[string]string) (ruleType string, 
 	}
 
 	return ruleType, unknown
-}
-
-func getIpSourceRangesFromAnnotation(annotation string) ([]net.IPNet, error) {
-	annotation = strings.TrimSpace(annotation)
-
-	if annotation == "" {
-		return nil, nil
-	}
-
-	rangeStrings := strings.Split(annotation, ",")
-	ipNets := []net.IPNet{}
-
-	for _, rangeString := range rangeStrings {
-		rangeString = strings.TrimSpace(rangeString)
-		_, ipNet, err := net.ParseCIDR(rangeString)
-
-		if err != nil {
-			return nil, err
-		}
-
-		ipNets = append(ipNets, *ipNet)
-	}
-
-	if len(ipNets) > 0 {
-		return ipNets, nil
-	}
-
-	return nil, nil
 }
