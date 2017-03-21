@@ -61,7 +61,7 @@ type Frontend struct {
 	Routes               map[string]Route `json:"routes,omitempty"`
 	PassHostHeader       bool             `json:"passHostHeader,omitempty"`
 	Priority             int              `json:"priority"`
-	WhitelistSourceRange []string         `json:"ipSourceRanges,omitempty"`
+	WhitelistSourceRange []string         `json:"whitelistSourceRange,omitempty"`
 }
 
 // LoadBalancerMethod holds the method of load balancing to use.
