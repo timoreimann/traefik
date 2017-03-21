@@ -740,6 +740,16 @@ func (server *Server) loadConfig(configurations configs, globalConfiguration Glo
 								negroni.Use(metricsMiddlewareBackend)
 							}
 						}
+
+						if len(frontend.IpSourceRanges) > 0 {
+							ipSourceRanges := frontend.IpSourceRanges
+							ipWhitelistMiddleware, err := middlewares.NewIpWhitelister(ipSourceRanges)
+							if err != nil {
+								log.Fatal("Error creating Auth: ", err)
+							}
+							negroni.Use(ipWhitelistMiddleware)
+						}
+
 						if configuration.Backends[frontend.Backend].CircuitBreaker != nil {
 							log.Debugf("Creating circuit breaker %s", configuration.Backends[frontend.Backend].CircuitBreaker.Expression)
 							cbreaker, err := middlewares.NewCircuitBreaker(lb, configuration.Backends[frontend.Backend].CircuitBreaker.Expression, cbreaker.Logger(oxyLogger))
