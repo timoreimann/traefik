@@ -164,10 +164,12 @@ func (provider *Kubernetes) loadIngresses(k8sClient k8s.Client) (*types.Configur
 
 				ipSourceRangeString := i.Annotations[annotationKubernetesWhitelistSourceRange]
 				ipSourceRangesStrings := strings.Split(ipSourceRangeString, ",")
-				ipSourceRanges := []string{}
+				var ipSourceRanges []string
 				for _, s := range ipSourceRangesStrings {
 					s = strings.TrimSpace(s)
-					ipSourceRanges = append(ipSourceRanges, s)
+					if len(s) > 0 {
+						ipSourceRanges = append(ipSourceRanges, s)
+					}
 				}
 
 				if _, exists := templateObjects.Frontends[r.Host+pa.Path]; !exists {

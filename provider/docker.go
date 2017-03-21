@@ -623,13 +623,15 @@ func (provider *Docker) getPassHostHeader(container dockerData) string {
 }
 
 func (provider *Docker) getIpWhitelists(container dockerData) []string {
-	ipSourceRanges := []string{}
+	var ipSourceRanges []string
 
 	if ipSourceRangeHeader, err := getLabel(container, "traefik.frontend.whitelist-source-range"); err == nil {
 		ipSourceRangesStrings := strings.Split(ipSourceRangeHeader, ",")
 		for _, s := range ipSourceRangesStrings {
 			s = strings.TrimSpace(s)
-			ipSourceRanges = append(ipSourceRanges, s)
+			if len(s) > 0 {
+				ipSourceRanges = append(ipSourceRanges, s)
+			}
 		}
 	}
 	return ipSourceRanges
