@@ -20,7 +20,7 @@
   backend = "{{$frontend.Backend}}"
   priority = {{$frontend.Priority}}
   passHostHeader = {{$frontend.PassHostHeader}}
-  ipSourceRanges = [{{range $frontend.IpWhitelists}}
+  ipSourceRanges = [{{range $frontend.IpSourceRanges}}
     "{{.}}",
   {{end}}]
     {{range $routeName, $route := $frontend.Routes}}
