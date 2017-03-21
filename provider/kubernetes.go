@@ -29,6 +29,7 @@ const (
 	ruleTypePathPrefix         = "PathPrefix"
 
 	annotationKubernetesWhitelistSourceRange = "ingress.kubernetes.io/whitelist-source-range"
+	annotationTraeffikWhitelistSourceRange = "traefik.frontend.whitelistSourceRange"
 )
 
 // Kubernetes holds configurations of the Kubernetes provider.
@@ -162,13 +163,17 @@ func (provider *Kubernetes) loadIngresses(k8sClient k8s.Client) (*types.Configur
 					log.Warnf("Unknown value of %s for traefik.frontend.passHostHeader, falling back to %s", passHostHeaderAnnotation, PassHostHeader)
 				}
 
-				ipSourceRangeString := i.Annotations[annotationKubernetesWhitelistSourceRange]
-				ipSourceRangesStrings := strings.Split(ipSourceRangeString, ",")
-				var ipSourceRanges []string
-				for _, s := range ipSourceRangesStrings {
+				witelistSourceRangeString := i.Annotations[annotationTraeffikWhitelistSourceRange]
+				if len(witelistSourceRangeString) == 0 {
+					witelistSourceRangeString = i.Annotations[annotationKubernetesWhitelistSourceRange]
+				}
+
+				whitelistSourceRangeStrings := strings.Split(witelistSourceRangeString, ",")
+				var whitelistSourceRange []string
+				for _, s := range whitelistSourceRangeStrings {
 					s = strings.TrimSpace(s)
 					if len(s) > 0 {
-						ipSourceRanges = append(ipSourceRanges, s)
+						whitelistSourceRange = append(whitelistSourceRange, s)
 					}
 				}
 
@@ -178,7 +183,7 @@ func (provider *Kubernetes) loadIngresses(k8sClient k8s.Client) (*types.Configur
 						PassHostHeader: PassHostHeader,
 						Routes:         make(map[string]types.Route),
 						Priority:       len(pa.Path),
-						IpSourceRanges: ipSourceRanges,
+						WhitelistSourceRange: whitelistSourceRange,
 					}
 				}
 				if len(r.Host) > 0 {

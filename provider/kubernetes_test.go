@@ -1682,7 +1682,7 @@ func TestIngressAnnotations(t *testing.T) {
 			"test/ip-source-range": {
 				Backend:        "test/ip-source-range",
 				PassHostHeader: true,
-				IpSourceRanges: []string{
+				WhitelistSourceRange: []string{
 					"1.1.1.1/24",
 					"1234:abcd::42/32",
 				},

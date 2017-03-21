@@ -605,7 +605,7 @@ func TestDockerGetIpWhitelists(t *testing.T) {
 				Config: &container.Config{
 					Labels: map[string]string{
 						"traefik.frontend.passHostHeader": "false",
-						"traefik.frontend.whitelist-source-range": "1.1.1.1/24, 1234:abcd::42/32",
+						"traefik.frontend.whitelistSourceRange": "1.1.1.1/24, 1234:abcd::42/32",
 					},
 				},
 			},
@@ -618,7 +618,7 @@ func TestDockerGetIpWhitelists(t *testing.T) {
 
 	for _, e := range containers {
 		dockerData := parseContainer(e.container)
-		actual := provider.getIpWhitelists(dockerData)
+		actual := provider.getWhitelistSourceRange(dockerData)
 		if !reflect.DeepEqual(actual, e.expected) {
 			t.Fatalf("expected %q, got %q", e.expected, actual)
 		}
@@ -1002,7 +1002,7 @@ func TestDockerLoadDockerConfig(t *testing.T) {
 					Backend:        "backend-test",
 					PassHostHeader: true,
 					EntryPoints:    []string{},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test-docker-localhost": {
 							Rule: "Host:test.docker.localhost",
@@ -1075,7 +1075,7 @@ func TestDockerLoadDockerConfig(t *testing.T) {
 					Backend:        "backend-foobar",
 					PassHostHeader: true,
 					EntryPoints:    []string{"http", "https"},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test1-docker-localhost": {
 							Rule: "Host:test1.docker.localhost",
@@ -1086,7 +1086,7 @@ func TestDockerLoadDockerConfig(t *testing.T) {
 					Backend:        "backend-foobar",
 					PassHostHeader: true,
 					EntryPoints:    []string{},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test2-docker-localhost": {
 							Rule: "Host:test2.docker.localhost",
@@ -1145,7 +1145,7 @@ func TestDockerLoadDockerConfig(t *testing.T) {
 					Backend:        "backend-foobar",
 					PassHostHeader: true,
 					EntryPoints:    []string{"http", "https"},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test1-docker-localhost": {
 							Rule: "Host:test1.docker.localhost",
@@ -2089,7 +2089,7 @@ func TestSwarmLoadDockerConfig(t *testing.T) {
 					Backend:        "backend-test",
 					PassHostHeader: true,
 					EntryPoints:    []string{},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test-docker-localhost": {
 							Rule: "Host:test.docker.localhost",
@@ -2168,7 +2168,7 @@ func TestSwarmLoadDockerConfig(t *testing.T) {
 					Backend:        "backend-foobar",
 					PassHostHeader: true,
 					EntryPoints:    []string{"http", "https"},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test1-docker-localhost": {
 							Rule: "Host:test1.docker.localhost",
@@ -2179,7 +2179,7 @@ func TestSwarmLoadDockerConfig(t *testing.T) {
 					Backend:        "backend-foobar",
 					PassHostHeader: true,
 					EntryPoints:    []string{},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test2-docker-localhost": {
 							Rule: "Host:test2.docker.localhost",
@@ -2788,7 +2788,7 @@ func TestDockerLoadDockerServiceConfig(t *testing.T) {
 					Backend:        "backend-foo-service",
 					PassHostHeader: true,
 					EntryPoints:    []string{"http", "https"},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"service-service": {
 							Rule: "Host:foo.docker.localhost",
@@ -2870,7 +2870,7 @@ func TestDockerLoadDockerServiceConfig(t *testing.T) {
 					PassHostHeader: false,
 					Priority:       5000,
 					EntryPoints:    []string{"http", "https", "ws"},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"service-service": {
 							Rule: "Path:/mypath",
@@ -2881,7 +2881,7 @@ func TestDockerLoadDockerServiceConfig(t *testing.T) {
 					Backend:        "backend-test2-anotherservice",
 					PassHostHeader: true,
 					EntryPoints:    []string{},
-					IpSourceRanges: []string{},
+					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"service-anotherservice": {
 							Rule: "Path:/anotherpath",

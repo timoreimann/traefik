@@ -440,7 +440,7 @@ defaultEntryPoints = ["http", "https"]
   backend = "backend1"
   passHostHeader = true
   priority = 10
-  ipSourceRanges = ["10.42.0.0/16", "152.89.1.33/32", "afed:be44::/16"]
+  whitelistSourceRange = ["10.42.0.0/16", "152.89.1.33/32", "afed:be44::/16"]
   entrypoints = ["https"] # overrides defaultEntryPoints
     [frontends.frontend2.routes.test_1]
     rule = "Host:{subdomain:[a-z]+}.localhost"

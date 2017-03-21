@@ -43,7 +43,7 @@
   [frontends."frontend-{{getServiceBackend $container $serviceName}}"]
   backend = "backend-{{getServiceBackend $container $serviceName}}"
   passHostHeader = {{getServicePassHostHeader $container $serviceName}}
-  ipSourceRanges = [{{range getIpWhitelists $container}}
+  whitelistSourceRange = [{{range getWhitelistSourceRange $container}}
     "{{.}}",
   {{end}}]
   priority = {{getServicePriority $container $serviceName}}
@@ -57,7 +57,7 @@
   [frontends."frontend-{{$frontend}}"]
   backend = "backend-{{getBackend $container}}"
   passHostHeader = {{getPassHostHeader $container}}
-  ipSourceRanges = [{{range getIpWhitelists $container}}
+  whitelistSourceRange = [{{range getWhitelistSourceRange $container}}
     "{{.}}",
   {{end}}]
   priority = {{getPriority $container}}

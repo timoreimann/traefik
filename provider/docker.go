@@ -247,7 +247,7 @@ func (provider *Docker) loadDockerConfig(containersInspected []dockerData) *type
 		"getDomain":                   provider.getDomain,
 		"getProtocol":                 provider.getProtocol,
 		"getPassHostHeader":           provider.getPassHostHeader,
-		"getIpWhitelists":             provider.getIpWhitelists,
+		"getWhitelistSourceRange":     provider.getWhitelistSourceRange,
 		"getPriority":                 provider.getPriority,
 		"getEntryPoints":              provider.getEntryPoints,
 		"getFrontendRule":             provider.getFrontendRule,
@@ -622,19 +622,19 @@ func (provider *Docker) getPassHostHeader(container dockerData) string {
 	return "true"
 }
 
-func (provider *Docker) getIpWhitelists(container dockerData) []string {
-	var ipSourceRanges []string
+func (provider *Docker) getWhitelistSourceRange(container dockerData) []string {
+	var whitelistSourceRange []string
 
-	if ipSourceRangeHeader, err := getLabel(container, "traefik.frontend.whitelist-source-range"); err == nil {
-		ipSourceRangesStrings := strings.Split(ipSourceRangeHeader, ",")
-		for _, s := range ipSourceRangesStrings {
+	if whitelistSourceRangeHeader, err := getLabel(container, "traefik.frontend.whitelistSourceRange"); err == nil {
+		whitelistSourceRangeStrings := strings.Split(whitelistSourceRangeHeader, ",")
+		for _, s := range whitelistSourceRangeStrings {
 			s = strings.TrimSpace(s)
 			if len(s) > 0 {
-				ipSourceRanges = append(ipSourceRanges, s)
+				whitelistSourceRange = append(whitelistSourceRange, s)
 			}
 		}
 	}
-	return ipSourceRanges
+	return whitelistSourceRange
 }
 
 func (provider *Docker) getPriority(container dockerData) string {

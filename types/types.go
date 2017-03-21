@@ -56,12 +56,12 @@ type Route struct {
 
 // Frontend holds frontend configuration.
 type Frontend struct {
-	EntryPoints    []string         `json:"entryPoints,omitempty"`
-	Backend        string           `json:"backend,omitempty"`
-	Routes         map[string]Route `json:"routes,omitempty"`
-	PassHostHeader bool             `json:"passHostHeader,omitempty"`
-	Priority       int              `json:"priority"`
-	IpSourceRanges []string         `json:"ipSourceRanges,omitempty"`
+	EntryPoints          []string         `json:"entryPoints,omitempty"`
+	Backend              string           `json:"backend,omitempty"`
+	Routes               map[string]Route `json:"routes,omitempty"`
+	PassHostHeader       bool             `json:"passHostHeader,omitempty"`
+	Priority             int              `json:"priority"`
+	WhitelistSourceRange []string         `json:"ipSourceRanges,omitempty"`
 }
 
 // LoadBalancerMethod holds the method of load balancing to use.
