@@ -741,8 +741,8 @@ func (server *Server) loadConfig(configurations configs, globalConfiguration Glo
 							}
 						}
 
-						log.Info("Configured IP Whitelists: ", frontend.IpSourceRanges)
 						if len(frontend.IpSourceRanges) > 0 {
+							log.Info("Configured IP Whitelists: ", frontend.IpSourceRanges)
 							ipSourceRanges := frontend.IpSourceRanges
 							ipWhitelistMiddleware, err := middlewares.NewIpWhitelister(ipSourceRanges)
 							if err != nil {
