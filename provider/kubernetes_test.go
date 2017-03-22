@@ -1549,7 +1549,7 @@ func TestIngressAnnotations(t *testing.T) {
 			ObjectMeta: v1.ObjectMeta{
 				Namespace: "testing",
 				Annotations: map[string]string{
-					"kubernetes.io/ingress.class":     "traefik",
+					"kubernetes.io/ingress.class":                  "traefik",
 					"ingress.kubernetes.io/whitelist-source-range": "1.1.1.1/24, 1234:abcd::42/32",
 				},
 			},
@@ -1686,7 +1686,7 @@ func TestIngressAnnotations(t *testing.T) {
 					"1.1.1.1/24",
 					"1234:abcd::42/32",
 				},
-				Priority:       len("/ip-source-range"),
+				Priority: len("/ip-source-range"),
 				Routes: map[string]types.Route{
 					"/ip-source-range": {
 						Rule: "PathPrefix:/ip-source-range",

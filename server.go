@@ -744,7 +744,7 @@ func (server *Server) loadConfig(configurations configs, globalConfiguration Glo
 						if len(frontend.WhitelistSourceRange) > 0 {
 							log.Info("Configured IP Whitelists: ", frontend.WhitelistSourceRange)
 							ipSourceRanges := frontend.WhitelistSourceRange
-							ipWhitelistMiddleware, err := middlewares.NewIpWhitelister(ipSourceRanges)
+							ipWhitelistMiddleware, err := middlewares.NewIPWhitelister(ipSourceRanges)
 							if err != nil {
 								log.Fatal("Error creating IP Whitelister: ", err)
 							}

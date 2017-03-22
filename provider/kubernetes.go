@@ -29,7 +29,7 @@ const (
 	ruleTypePathPrefix         = "PathPrefix"
 
 	annotationKubernetesWhitelistSourceRange = "ingress.kubernetes.io/whitelist-source-range"
-	annotationTraeffikWhitelistSourceRange = "traefik.frontend.whitelistSourceRange"
+	annotationTraeffikWhitelistSourceRange   = "traefik.frontend.whitelistSourceRange"
 )
 
 // Kubernetes holds configurations of the Kubernetes provider.
@@ -179,10 +179,10 @@ func (provider *Kubernetes) loadIngresses(k8sClient k8s.Client) (*types.Configur
 
 				if _, exists := templateObjects.Frontends[r.Host+pa.Path]; !exists {
 					templateObjects.Frontends[r.Host+pa.Path] = &types.Frontend{
-						Backend:        r.Host + pa.Path,
-						PassHostHeader: PassHostHeader,
-						Routes:         make(map[string]types.Route),
-						Priority:       len(pa.Path),
+						Backend:              r.Host + pa.Path,
+						PassHostHeader:       PassHostHeader,
+						Routes:               make(map[string]types.Route),
+						Priority:             len(pa.Path),
 						WhitelistSourceRange: whitelistSourceRange,
 					}
 				}

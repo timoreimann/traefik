@@ -604,7 +604,7 @@ func TestDockerGetIpWhitelists(t *testing.T) {
 				},
 				Config: &container.Config{
 					Labels: map[string]string{
-						"traefik.frontend.passHostHeader": "false",
+						"traefik.frontend.passHostHeader":       "false",
 						"traefik.frontend.whitelistSourceRange": "1.1.1.1/24, 1234:abcd::42/32",
 					},
 				},
@@ -999,9 +999,9 @@ func TestDockerLoadDockerConfig(t *testing.T) {
 			},
 			expectedFrontends: map[string]*types.Frontend{
 				"frontend-Host-test-docker-localhost": {
-					Backend:        "backend-test",
-					PassHostHeader: true,
-					EntryPoints:    []string{},
+					Backend:              "backend-test",
+					PassHostHeader:       true,
+					EntryPoints:          []string{},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test-docker-localhost": {
@@ -1072,9 +1072,9 @@ func TestDockerLoadDockerConfig(t *testing.T) {
 			},
 			expectedFrontends: map[string]*types.Frontend{
 				"frontend-Host-test1-docker-localhost": {
-					Backend:        "backend-foobar",
-					PassHostHeader: true,
-					EntryPoints:    []string{"http", "https"},
+					Backend:              "backend-foobar",
+					PassHostHeader:       true,
+					EntryPoints:          []string{"http", "https"},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test1-docker-localhost": {
@@ -1083,9 +1083,9 @@ func TestDockerLoadDockerConfig(t *testing.T) {
 					},
 				},
 				"frontend-Host-test2-docker-localhost": {
-					Backend:        "backend-foobar",
-					PassHostHeader: true,
-					EntryPoints:    []string{},
+					Backend:              "backend-foobar",
+					PassHostHeader:       true,
+					EntryPoints:          []string{},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test2-docker-localhost": {
@@ -1142,9 +1142,9 @@ func TestDockerLoadDockerConfig(t *testing.T) {
 			},
 			expectedFrontends: map[string]*types.Frontend{
 				"frontend-Host-test1-docker-localhost": {
-					Backend:        "backend-foobar",
-					PassHostHeader: true,
-					EntryPoints:    []string{"http", "https"},
+					Backend:              "backend-foobar",
+					PassHostHeader:       true,
+					EntryPoints:          []string{"http", "https"},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test1-docker-localhost": {
@@ -2086,9 +2086,9 @@ func TestSwarmLoadDockerConfig(t *testing.T) {
 			},
 			expectedFrontends: map[string]*types.Frontend{
 				"frontend-Host-test-docker-localhost": {
-					Backend:        "backend-test",
-					PassHostHeader: true,
-					EntryPoints:    []string{},
+					Backend:              "backend-test",
+					PassHostHeader:       true,
+					EntryPoints:          []string{},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test-docker-localhost": {
@@ -2165,9 +2165,9 @@ func TestSwarmLoadDockerConfig(t *testing.T) {
 			},
 			expectedFrontends: map[string]*types.Frontend{
 				"frontend-Host-test1-docker-localhost": {
-					Backend:        "backend-foobar",
-					PassHostHeader: true,
-					EntryPoints:    []string{"http", "https"},
+					Backend:              "backend-foobar",
+					PassHostHeader:       true,
+					EntryPoints:          []string{"http", "https"},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test1-docker-localhost": {
@@ -2176,9 +2176,9 @@ func TestSwarmLoadDockerConfig(t *testing.T) {
 					},
 				},
 				"frontend-Host-test2-docker-localhost": {
-					Backend:        "backend-foobar",
-					PassHostHeader: true,
-					EntryPoints:    []string{},
+					Backend:              "backend-foobar",
+					PassHostHeader:       true,
+					EntryPoints:          []string{},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"route-frontend-Host-test2-docker-localhost": {
@@ -2785,9 +2785,9 @@ func TestDockerLoadDockerServiceConfig(t *testing.T) {
 			},
 			expectedFrontends: map[string]*types.Frontend{
 				"frontend-foo-service": {
-					Backend:        "backend-foo-service",
-					PassHostHeader: true,
-					EntryPoints:    []string{"http", "https"},
+					Backend:              "backend-foo-service",
+					PassHostHeader:       true,
+					EntryPoints:          []string{"http", "https"},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"service-service": {
@@ -2866,10 +2866,10 @@ func TestDockerLoadDockerServiceConfig(t *testing.T) {
 			},
 			expectedFrontends: map[string]*types.Frontend{
 				"frontend-foobar": {
-					Backend:        "backend-foobar",
-					PassHostHeader: false,
-					Priority:       5000,
-					EntryPoints:    []string{"http", "https", "ws"},
+					Backend:              "backend-foobar",
+					PassHostHeader:       false,
+					Priority:             5000,
+					EntryPoints:          []string{"http", "https", "ws"},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"service-service": {
@@ -2878,9 +2878,9 @@ func TestDockerLoadDockerServiceConfig(t *testing.T) {
 					},
 				},
 				"frontend-test2-anotherservice": {
-					Backend:        "backend-test2-anotherservice",
-					PassHostHeader: true,
-					EntryPoints:    []string{},
+					Backend:              "backend-test2-anotherservice",
+					PassHostHeader:       true,
+					EntryPoints:          []string{},
 					WhitelistSourceRange: []string{},
 					Routes: map[string]types.Route{
 						"service-anotherservice": {
