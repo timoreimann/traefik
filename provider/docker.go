@@ -526,12 +526,19 @@ func (provider *Docker) getFrontendRule(container dockerData) string {
 	if label, err := getLabel(container, "traefik.frontend.rule"); err == nil {
 		return label
 	}
+	if labels, err := getLabels(container, []string{"com.docker.compose.project", "com.docker.compose.service"}); err == nil {
+		return "Host:" + provider.getSubDomain(labels["com.docker.compose.service"]+"."+labels["com.docker.compose.project"]) + "." + provider.Domain
+	}
+
 	return "Host:" + provider.getSubDomain(container.ServiceName) + "." + provider.Domain
 }
 
 func (provider *Docker) getBackend(container dockerData) string {
 	if label, err := getLabel(container, "traefik.backend"); err == nil {
 		return normalize(label)
+	}
+	if labels, err := getLabels(container, []string{"com.docker.compose.project", "com.docker.compose.service"}); err == nil {
+		return normalize(labels["com.docker.compose.service"] + "_" + labels["com.docker.compose.project"])
 	}
 	return normalize(container.ServiceName)
 }
@@ -625,14 +632,8 @@ func (provider *Docker) getPassHostHeader(container dockerData) string {
 func (provider *Docker) getWhitelistSourceRange(container dockerData) []string {
 	var whitelistSourceRange []string
 
-	if whitelistSourceRangeHeader, err := getLabel(container, "traefik.frontend.whitelistSourceRange"); err == nil {
-		whitelistSourceRangeStrings := strings.Split(whitelistSourceRangeHeader, ",")
-		for _, s := range whitelistSourceRangeStrings {
-			s = strings.TrimSpace(s)
-			if len(s) > 0 {
-				whitelistSourceRange = append(whitelistSourceRange, s)
-			}
-		}
+	if whitelistSourceRangeLabel, err := getLabel(container, "traefik.frontend.whitelistSourceRange"); err == nil {
+		whitelistSourceRange = splitAndTrimString(whitelistSourceRangeLabel)
 	}
 	return whitelistSourceRange
 }

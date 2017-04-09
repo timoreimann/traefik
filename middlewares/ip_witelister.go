@@ -18,49 +18,50 @@ type IPWhitelister struct {
 func NewIPWhitelister(whitelistStrings []string) (*IPWhitelister, error) {
 	whitelister := IPWhitelister{}
 
-	if len(whitelistStrings) < 1 {
-		return nil, fmt.Errorf("Error creating IpWhitelister: no whitelists provided")
+	if len(whitelistStrings) == 0 {
+		return nil, fmt.Errorf("no whitelists provided")
 	}
 
-	whitelists := []*net.IPNet{}
 	for _, whitelistString := range whitelistStrings {
 		_, whitelist, err := net.ParseCIDR(whitelistString)
 		if err != nil {
-			return nil, fmt.Errorf("Error PArsing CIDR Whitelist %s: %s", whitelist, err)
+			return nil, fmt.Errorf("parsing CIDR whitelist %s: %+v", whitelist, err)
 		}
-		whitelists = append(whitelists, whitelist)
+		whitelister.whitelists = append(whitelister.whitelists, whitelist)
 	}
 
-	whitelister.whitelists = whitelists
-	whitelister.handler = negroni.HandlerFunc(func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		var match *net.IPNet
-
-		remoteIP, err := ipFromRemoteAddr(r.RemoteAddr)
-		if err != nil {
-			log.Warnf("Unable to parse Remote-Address from Header: %s - rejecting", r.RemoteAddr)
-			reject(w)
-		}
-
-		for _, whitelist := range whitelists {
-			if whitelist.Contains(*remoteIP) {
-				match = whitelist
-				break
-			}
-		}
-		if match != nil {
-			log.Debugf("Source-IP %s matched whitelist %s, passing", remoteIP, match)
-			next.ServeHTTP(w, r)
-		} else {
-			log.Debugf("Source-IP %s matched none of the %d whitelists, rejecting", remoteIP, len(whitelists))
-			reject(w)
-		}
-	})
+	whitelister.handler = negroni.HandlerFunc(whitelister.handle)
+	log.Debugf("configured %u IP whitelists: %s", len(whitelister.whitelists), whitelister.whitelists)
 
 	return &whitelister, nil
 }
+
+func (whitelister *IPWhitelister) handle(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	var match *net.IPNet
+
+	remoteIP, err := ipFromRemoteAddr(r.RemoteAddr)
+	if err != nil {
+		log.Warnf("unable to parse remote-address from header: %s - rejecting", r.RemoteAddr)
+		reject(w)
+		return
+	}
+
+	for _, whitelist := range whitelister.whitelists {
+		if whitelist.Contains(*remoteIP) {
+			log.Debugf("source-IP %s matched whitelist %s - passing", remoteIP, match)
+			next.ServeHTTP(w, r)
+			return;
+		}
+	}
+
+	log.Debugf("source-IP %s matched none of the whitelists - rejecting", remoteIP)
+	reject(w)
+	return;
+}
+
 func reject(w http.ResponseWriter) {
 	statusCode := http.StatusForbidden
-	statusText := fmt.Sprintf("%d %s\n", http.StatusForbidden, http.StatusText(http.StatusForbidden))
+	statusText := "request from prohibited source"
 
 	w.WriteHeader(statusCode)
 	w.Write([]byte(statusText))
@@ -68,17 +69,17 @@ func reject(w http.ResponseWriter) {
 func ipFromRemoteAddr(addr string) (*net.IP, error) {
 	ip, _, err := net.SplitHostPort(addr)
 	if err != nil {
-		return nil, fmt.Errorf("Can't extract IP/Port from address %s: %s", addr, err)
+		return nil, fmt.Errorf("can't extract IP/Port from address %s: %s", addr, err)
 	}
 
 	userIP := net.ParseIP(ip)
 	if userIP == nil {
-		return nil, fmt.Errorf("Can't parse IP from address %s", ip)
+		return nil, fmt.Errorf("can't parse IP from address %s", ip)
 	}
 
 	return &userIP, nil
 }
 
-func (a *IPWhitelister) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	a.handler.ServeHTTP(rw, r, next)
+func (whitelister *IPWhitelister) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	whitelister.handler.ServeHTTP(rw, r, next)
 }

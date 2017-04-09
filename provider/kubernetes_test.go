@@ -9,9 +9,9 @@ import (
 
 	"github.com/containous/traefik/provider/k8s"
 	"github.com/containous/traefik/types"
-	"k8s.io/client-go/1.5/pkg/api/v1"
-	"k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
-	"k8s.io/client-go/1.5/pkg/util/intstr"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	"k8s.io/client-go/pkg/util/intstr"
 )
 
 func TestLoadIngresses(t *testing.T) {
@@ -1561,7 +1561,7 @@ func TestIngressAnnotations(t *testing.T) {
 							HTTP: &v1beta1.HTTPIngressRuleValue{
 								Paths: []v1beta1.HTTPIngressPath{
 									{
-										Path: "/ip-source-range",
+										Path: "/whitelist-source-range",
 										Backend: v1beta1.IngressBackend{
 											ServiceName: "service1",
 											ServicePort: intstr.FromInt(80),
@@ -1638,7 +1638,7 @@ func TestIngressAnnotations(t *testing.T) {
 					Method: "wrr",
 				},
 			},
-			"test/ip-source-range": {
+			"test/whitelist-source-range": {
 				Servers: map[string]types.Server{
 					"http://example.com": {
 						URL:    "http://example.com",
@@ -1679,17 +1679,17 @@ func TestIngressAnnotations(t *testing.T) {
 					},
 				},
 			},
-			"test/ip-source-range": {
-				Backend:        "test/ip-source-range",
+			"test/whitelist-source-range": {
+				Backend:        "test/whitelist-source-range",
 				PassHostHeader: true,
 				WhitelistSourceRange: []string{
 					"1.1.1.1/24",
 					"1234:abcd::42/32",
 				},
-				Priority: len("/ip-source-range"),
+				Priority: len("/whitelist-source-range"),
 				Routes: map[string]types.Route{
-					"/ip-source-range": {
-						Rule: "PathPrefix:/ip-source-range",
+					"/whitelist-source-range": {
+						Rule: "PathPrefix:/whitelist-source-range",
 					},
 					"test": {
 						Rule: "Host:test",

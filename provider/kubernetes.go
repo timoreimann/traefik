@@ -15,8 +15,8 @@ import (
 	"github.com/containous/traefik/provider/k8s"
 	"github.com/containous/traefik/safe"
 	"github.com/containous/traefik/types"
-	"k8s.io/client-go/1.5/pkg/api/v1"
-	"k8s.io/client-go/1.5/pkg/util/intstr"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/util/intstr"
 )
 
 var _ Provider = (*Kubernetes)(nil)
@@ -29,7 +29,6 @@ const (
 	ruleTypePathPrefix         = "PathPrefix"
 
 	annotationKubernetesWhitelistSourceRange = "ingress.kubernetes.io/whitelist-source-range"
-	annotationTraeffikWhitelistSourceRange   = "traefik.frontend.whitelistSourceRange"
 )
 
 // Kubernetes holds configurations of the Kubernetes provider.
@@ -163,19 +162,8 @@ func (provider *Kubernetes) loadIngresses(k8sClient k8s.Client) (*types.Configur
 					log.Warnf("Unknown value of %s for traefik.frontend.passHostHeader, falling back to %s", passHostHeaderAnnotation, PassHostHeader)
 				}
 
-				witelistSourceRangeString := i.Annotations[annotationTraeffikWhitelistSourceRange]
-				if len(witelistSourceRangeString) == 0 {
-					witelistSourceRangeString = i.Annotations[annotationKubernetesWhitelistSourceRange]
-				}
-
-				whitelistSourceRangeStrings := strings.Split(witelistSourceRangeString, ",")
-				var whitelistSourceRange []string
-				for _, s := range whitelistSourceRangeStrings {
-					s = strings.TrimSpace(s)
-					if len(s) > 0 {
-						whitelistSourceRange = append(whitelistSourceRange, s)
-					}
-				}
+				witelistSourceRangeAnnotation := i.Annotations[annotationKubernetesWhitelistSourceRange]
+				whitelistSourceRange := splitAndTrimString(witelistSourceRangeAnnotation)
 
 				if _, exists := templateObjects.Frontends[r.Host+pa.Path]; !exists {
 					templateObjects.Frontends[r.Host+pa.Path] = &types.Frontend{

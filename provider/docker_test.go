@@ -11,6 +11,7 @@ import (
 	"github.com/docker/engine-api/types/network"
 	"github.com/docker/engine-api/types/swarm"
 	"github.com/docker/go-connections/nat"
+	"strconv"
 )
 
 func TestDockerGetFrontendName(t *testing.T) {
@@ -43,6 +44,20 @@ func TestDockerGetFrontendName(t *testing.T) {
 				},
 			},
 			expected: "Headers-User-Agent-bat-0-1-0",
+		},
+		{
+			container: docker.ContainerJSON{
+				ContainerJSONBase: &docker.ContainerJSONBase{
+					Name: "mycontainer",
+				},
+				Config: &container.Config{
+					Labels: map[string]string{
+						"com.docker.compose.project": "foo",
+						"com.docker.compose.service": "bar",
+					},
+				},
+			},
+			expected: "Host-bar-foo-docker-localhost",
 		},
 		{
 			container: docker.ContainerJSON{
@@ -133,6 +148,19 @@ func TestDockerGetFrontendRule(t *testing.T) {
 				},
 			},
 			expected: "Host:foo.bar",
+		}, {
+			container: docker.ContainerJSON{
+				ContainerJSONBase: &docker.ContainerJSONBase{
+					Name: "test",
+				},
+				Config: &container.Config{
+					Labels: map[string]string{
+						"com.docker.compose.project": "foo",
+						"com.docker.compose.service": "bar",
+					},
+				},
+			},
+			expected: "Host:bar.foo.docker.localhost",
 		},
 		{
 			container: docker.ContainerJSON{
@@ -195,6 +223,20 @@ func TestDockerGetBackend(t *testing.T) {
 				},
 			},
 			expected: "foobar",
+		},
+		{
+			container: docker.ContainerJSON{
+				ContainerJSONBase: &docker.ContainerJSONBase{
+					Name: "test",
+				},
+				Config: &container.Config{
+					Labels: map[string]string{
+						"com.docker.compose.project": "foo",
+						"com.docker.compose.service": "bar",
+					},
+				},
+			},
+			expected: "bar-foo",
 		},
 	}
 
@@ -582,32 +624,42 @@ func TestDockerGetPassHostHeader(t *testing.T) {
 	}
 }
 
-func TestDockerGetIpWhitelists(t *testing.T) {
+func TestDockerGetWhitelistSourceRange(t *testing.T) {
 	provider := &Docker{}
-	containers := []struct {
-		container docker.ContainerJSON
-		expected  []string
+
+	tests := []struct {
+		labels   map[string]string
+		expected []string
 	}{
 		{
-			container: docker.ContainerJSON{
-				ContainerJSONBase: &docker.ContainerJSONBase{
-					Name: "foo",
-				},
-				Config: &container.Config{},
+			labels: map[string]string{},
+			expected: nil,
+		},
+		{
+			labels: map[string]string{
+				"traefik.frontend.whitelistSourceRange": "",
 			},
 			expected: nil,
 		},
 		{
-			container: docker.ContainerJSON{
-				ContainerJSONBase: &docker.ContainerJSONBase{
-					Name: "test",
-				},
-				Config: &container.Config{
-					Labels: map[string]string{
-						"traefik.frontend.passHostHeader":       "false",
-						"traefik.frontend.whitelistSourceRange": "1.1.1.1/24, 1234:abcd::42/32",
-					},
-				},
+			labels: map[string]string{
+				"traefik.frontend.whitelistSourceRange": "1.2.3.4/16",
+			},
+			expected: []string{
+				"1.2.3.4/16",
+			},
+		},
+		{
+			labels: map[string]string{
+				"traefik.frontend.whitelistSourceRange": "fe80::/16",
+			},
+			expected: []string{
+				"fe80::/16",
+			},
+		},
+		{
+			labels: map[string]string{
+				"traefik.frontend.whitelistSourceRange": "1.1.1.1/24, 1234:abcd::42/32",
 			},
 			expected: []string{
 				"1.1.1.1/24",
@@ -616,12 +668,23 @@ func TestDockerGetIpWhitelists(t *testing.T) {
 		},
 	}
 
-	for _, e := range containers {
-		dockerData := parseContainer(e.container)
-		actual := provider.getWhitelistSourceRange(dockerData)
-		if !reflect.DeepEqual(actual, e.expected) {
-			t.Fatalf("expected %q, got %q", e.expected, actual)
-		}
+	for testID, e := range tests {
+		t.Run(strconv.Itoa(testID), func(t *testing.T) {
+			t.Parallel()
+			testContainer := docker.ContainerJSON{
+				ContainerJSONBase: &docker.ContainerJSONBase{
+					Name: "test",
+				},
+				Config: &container.Config{
+					Labels: e.labels,
+				},
+			}
+			dockerData := parseContainer(testContainer)
+			actual := provider.getWhitelistSourceRange(dockerData)
+			if !reflect.DeepEqual(actual, e.expected) {
+				t.Errorf("expected %q, got %q", e.expected, actual)
+			}
+		})
 	}
 }
 
