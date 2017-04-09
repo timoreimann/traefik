@@ -38,7 +38,7 @@ func TestNewServerWithoutWhitelistSourceRange(t *testing.T) {
 	for index, e := range cases {
 		t.Run(index, func(t *testing.T) {
 			t.Parallel()
-			err, middleware := configureIPWhitelistMiddleware(e.whitelistStrings)
+			middleware, err := configureIPWhitelistMiddleware(e.whitelistStrings)
 
 			if !reflect.DeepEqual(err, e.err) {
 				t.Errorf("expected err: %+v, got: %+v", e.err, err)

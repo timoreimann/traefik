@@ -632,7 +632,7 @@ func TestDockerGetWhitelistSourceRange(t *testing.T) {
 		expected []string
 	}{
 		{
-			labels: map[string]string{},
+			labels:   map[string]string{},
 			expected: nil,
 		},
 		{

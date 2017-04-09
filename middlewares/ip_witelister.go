@@ -50,13 +50,13 @@ func (whitelister *IPWhitelister) handle(w http.ResponseWriter, r *http.Request,
 		if whitelist.Contains(*remoteIP) {
 			log.Debugf("source-IP %s matched whitelist %s - passing", remoteIP, match)
 			next.ServeHTTP(w, r)
-			return;
+			return
 		}
 	}
 
 	log.Debugf("source-IP %s matched none of the whitelists - rejecting", remoteIP)
 	reject(w)
-	return;
+	return
 }
 
 func reject(w http.ResponseWriter) {

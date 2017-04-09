@@ -738,7 +738,7 @@ func (server *Server) loadConfig(configurations configs, globalConfiguration Glo
 							}
 						}
 
-						err, ipWhitelistMiddleware := configureIPWhitelistMiddleware(frontend.WhitelistSourceRange)
+						ipWhitelistMiddleware, err := configureIPWhitelistMiddleware(frontend.WhitelistSourceRange)
 						if err != nil {
 							log.Fatalf("Error creating IP Whitelister: %s", err)
 						} else if ipWhitelistMiddleware != nil {
@@ -783,16 +783,16 @@ func (server *Server) loadConfig(configurations configs, globalConfiguration Glo
 	return serverEntryPoints, nil
 }
 
-func configureIPWhitelistMiddleware(whitelistSourceRangs []string) (error, negroni.Handler) {
+func configureIPWhitelistMiddleware(whitelistSourceRangs []string) (negroni.Handler, error) {
 	if len(whitelistSourceRangs) > 0 {
 		ipSourceRanges := whitelistSourceRangs
 		ipWhitelistMiddleware, err := middlewares.NewIPWhitelister(ipSourceRanges)
 
 		if err != nil {
-			return err, nil
+			return nil, err
 		}
 
-		return nil, ipWhitelistMiddleware
+		return ipWhitelistMiddleware, nil
 	}
 
 	return nil, nil
