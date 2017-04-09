@@ -582,7 +582,7 @@ func TestDockerGetPassHostHeader(t *testing.T) {
 	}
 }
 
-func TestDockerGetIpWhitelists(t *testing.T) {
+func TestDockerGetWhitelistSourceRange(t *testing.T) {
 	provider := &Docker{}
 	containers := []struct {
 		container docker.ContainerJSON

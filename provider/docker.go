@@ -625,8 +625,8 @@ func (provider *Docker) getPassHostHeader(container dockerData) string {
 func (provider *Docker) getWhitelistSourceRange(container dockerData) []string {
 	var whitelistSourceRange []string
 
-	if whitelistSourceRangeHeader, err := getLabel(container, "traefik.frontend.whitelistSourceRange"); err == nil {
-		whitelistSourceRangeStrings := strings.Split(whitelistSourceRangeHeader, ",")
+	if whitelistSourceRangeLabel, err := getLabel(container, "traefik.frontend.whitelistSourceRange"); err == nil {
+		whitelistSourceRangeStrings := strings.Split(whitelistSourceRangeLabel, ",")
 		for _, s := range whitelistSourceRangeStrings {
 			s = strings.TrimSpace(s)
 			if len(s) > 0 {

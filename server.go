@@ -742,13 +742,13 @@ func (server *Server) loadConfig(configurations configs, globalConfiguration Glo
 						}
 
 						if len(frontend.WhitelistSourceRange) > 0 {
-							log.Info("Configured IP Whitelists: ", frontend.WhitelistSourceRange)
 							ipSourceRanges := frontend.WhitelistSourceRange
 							ipWhitelistMiddleware, err := middlewares.NewIPWhitelister(ipSourceRanges)
 							if err != nil {
-								log.Fatal("Error creating IP Whitelister: ", err)
+								log.Fatalf("Error creating IP Whitelister: %s", err)
 							}
 							negroni.Use(ipWhitelistMiddleware)
+							log.Infof("Configured IP Whitelists: %s", frontend.WhitelistSourceRange)
 						}
 
 						if configuration.Backends[frontend.Backend].CircuitBreaker != nil {
