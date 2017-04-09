@@ -626,13 +626,7 @@ func (provider *Docker) getWhitelistSourceRange(container dockerData) []string {
 	var whitelistSourceRange []string
 
 	if whitelistSourceRangeLabel, err := getLabel(container, "traefik.frontend.whitelistSourceRange"); err == nil {
-		whitelistSourceRangeStrings := strings.Split(whitelistSourceRangeLabel, ",")
-		for _, s := range whitelistSourceRangeStrings {
-			s = strings.TrimSpace(s)
-			if len(s) > 0 {
-				whitelistSourceRange = append(whitelistSourceRange, s)
-			}
-		}
+		whitelistSourceRange = splitAndTrimString(whitelistSourceRangeLabel)
 	}
 	return whitelistSourceRange
 }
