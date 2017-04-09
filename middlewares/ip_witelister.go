@@ -43,6 +43,7 @@ func (whitelister *IPWhitelister) handle(w http.ResponseWriter, r *http.Request,
 	if err != nil {
 		log.Warnf("unable to parse remote-address from header: %s - rejecting", r.RemoteAddr)
 		reject(w)
+		return
 	}
 
 	for _, whitelist := range whitelister.whitelists {
