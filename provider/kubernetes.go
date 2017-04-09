@@ -29,7 +29,6 @@ const (
 	ruleTypePathPrefix         = "PathPrefix"
 
 	annotationKubernetesWhitelistSourceRange = "ingress.kubernetes.io/whitelist-source-range"
-	annotationTraeffikWhitelistSourceRange   = "traefik.frontend.whitelistSourceRange"
 )
 
 // Kubernetes holds configurations of the Kubernetes provider.
@@ -163,10 +162,7 @@ func (provider *Kubernetes) loadIngresses(k8sClient k8s.Client) (*types.Configur
 					log.Warnf("Unknown value of %s for traefik.frontend.passHostHeader, falling back to %s", passHostHeaderAnnotation, PassHostHeader)
 				}
 
-				witelistSourceRangeString := i.Annotations[annotationTraeffikWhitelistSourceRange]
-				if len(witelistSourceRangeString) == 0 {
-					witelistSourceRangeString = i.Annotations[annotationKubernetesWhitelistSourceRange]
-				}
+				witelistSourceRangeString := i.Annotations[annotationKubernetesWhitelistSourceRange]
 
 				whitelistSourceRangeStrings := strings.Split(witelistSourceRangeString, ",")
 				var whitelistSourceRange []string
