@@ -83,7 +83,7 @@ func TestNewIPWhitelister(t *testing.T) {
 				assert.EqualError(t, err, test.err)
 				return
 			}
-			assert.NoError(t, err);
+			assert.NoError(t, err)
 
 			for index, actual := range whitelister.whitelists {
 				expected := test.expectedWhitelists[index]
