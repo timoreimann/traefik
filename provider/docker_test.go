@@ -11,7 +11,6 @@ import (
 	"github.com/docker/engine-api/types/network"
 	"github.com/docker/engine-api/types/swarm"
 	"github.com/docker/go-connections/nat"
-	"strconv"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -629,20 +628,24 @@ func TestDockerGetWhitelistSourceRange(t *testing.T) {
 	provider := &Docker{}
 
 	tests := []struct {
+		desc      string
 		labels   map[string]string
 		expected []string
 	}{
 		{
+			desc:     "no whitelist-label",
 			labels:   map[string]string{},
 			expected: nil,
 		},
 		{
+			desc:     "whitelist-label with empty string",
 			labels: map[string]string{
 				"traefik.frontend.whitelistSourceRange": "",
 			},
 			expected: nil,
 		},
 		{
+			desc:     "whitelist-label with IPv4 mask",
 			labels: map[string]string{
 				"traefik.frontend.whitelistSourceRange": "1.2.3.4/16",
 			},
@@ -651,6 +654,7 @@ func TestDockerGetWhitelistSourceRange(t *testing.T) {
 			},
 		},
 		{
+			desc:     "whitelist-label with IPv6 mask",
 			labels: map[string]string{
 				"traefik.frontend.whitelistSourceRange": "fe80::/16",
 			},
@@ -659,6 +663,7 @@ func TestDockerGetWhitelistSourceRange(t *testing.T) {
 			},
 		},
 		{
+			desc:     "whitelist-label with multiple masks",
 			labels: map[string]string{
 				"traefik.frontend.whitelistSourceRange": "1.1.1.1/24, 1234:abcd::42/32",
 			},
@@ -669,21 +674,22 @@ func TestDockerGetWhitelistSourceRange(t *testing.T) {
 		},
 	}
 
-	for testID, e := range tests {
-		t.Run(strconv.Itoa(testID), func(t *testing.T) {
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 			testContainer := docker.ContainerJSON{
 				ContainerJSONBase: &docker.ContainerJSONBase{
 					Name: "test",
 				},
 				Config: &container.Config{
-					Labels: e.labels,
+					Labels: tc.labels,
 				},
 			}
 			dockerData := parseContainer(testContainer)
 			actual := provider.getWhitelistSourceRange(dockerData)
-			if !reflect.DeepEqual(actual, e.expected) {
-				t.Errorf("expected %q, got %q", e.expected, actual)
+			if !reflect.DeepEqual(actual, tc.expected) {
+				t.Errorf("expected %q, got %q", tc.expected, actual)
 			}
 		})
 	}
