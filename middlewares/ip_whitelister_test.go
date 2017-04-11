@@ -58,7 +58,7 @@ func TestNewIPWhitelister(t *testing.T) {
 				"fe80::/16",
 			},
 			expectedWhitelists: []*net.IPNet{
-				{IP: net.IPv4(1, 2, 3, 0), Mask: net.IPv4Mask(255, 255, 255, 0)},
+				{IP: net.IPv4(1, 2, 3, 0).To4(), Mask: net.IPv4Mask(255, 255, 255, 0)},
 				{IP: net.ParseIP("fe80::"), Mask: net.IPMask(net.ParseIP("ffff::"))},
 			},
 			err: "",
@@ -68,7 +68,7 @@ func TestNewIPWhitelister(t *testing.T) {
 				"127.0.0.1/8",
 			},
 			expectedWhitelists: []*net.IPNet{
-				{IP: net.IPv4(127, 0, 0, 0), Mask: net.IPv4Mask(255, 0, 0, 0)},
+				{IP: net.IPv4(127, 0, 0, 0).To4(), Mask: net.IPv4Mask(255, 0, 0, 0)},
 			},
 			err: "",
 		},
@@ -87,9 +87,8 @@ func TestNewIPWhitelister(t *testing.T) {
 
 			for index, actual := range whitelister.whitelists {
 				expected := test.expectedWhitelists[index]
-				if !actual.IP.Equal(expected.IP) || actual.Mask.String() != expected.Mask.String() {
-					t.Errorf("unexpected result while comparing parsed ip whitelists, expected %s, got %s", actual, expected)
-				}
+				assert.Equal(t, expected.IP, actual.IP)
+				assert.Equal(t, expected.Mask.String(), actual.Mask.String())
 			}
 		})
 	}
