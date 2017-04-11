@@ -1,12 +1,10 @@
 package middlewares
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"github.com/codegangsta/negroni"
@@ -18,18 +16,18 @@ func TestNewIPWhitelister(t *testing.T) {
 		desc               string
 		whitelistStrings   []string
 		expectedWhitelists []*net.IPNet
-		err                error
+		err                string
 	}{
 		{
 			desc:               "nil whitelist",
 			whitelistStrings:   nil,
 			expectedWhitelists: nil,
-			err:                errors.New("no whitelists provided"),
+			err:                "no whitelists provided",
 		}, {
 			desc:               "empty whitelist",
 			whitelistStrings:   []string{},
 			expectedWhitelists: nil,
-			err:                errors.New("no whitelists provided"),
+			err:                "no whitelists provided",
 		}, {
 			desc: "whitelist containing empty string",
 			whitelistStrings: []string{
@@ -38,21 +36,21 @@ func TestNewIPWhitelister(t *testing.T) {
 				"fe80::/16",
 			},
 			expectedWhitelists: nil,
-			err:                errors.New("parsing CIDR whitelist <nil>: invalid CIDR address: "),
+			err:                "parsing CIDR whitelist <nil>: invalid CIDR address: ",
 		}, {
 			desc: "whitelist containing only an empty string",
 			whitelistStrings: []string{
 				"",
 			},
 			expectedWhitelists: nil,
-			err:                errors.New("parsing CIDR whitelist <nil>: invalid CIDR address: "),
+			err:                "parsing CIDR whitelist <nil>: invalid CIDR address: ",
 		}, {
 			desc: "whitelist containing an invalid string",
 			whitelistStrings: []string{
 				"foo",
 			},
 			expectedWhitelists: nil,
-			err:                errors.New("parsing CIDR whitelist foo: invalid CIDR address: foo"),
+			err:                "parsing CIDR whitelist <nil>: invalid CIDR address: foo",
 		}, {
 			desc: "IPv4 & IPv6 whitelist",
 			whitelistStrings: []string{
@@ -63,7 +61,7 @@ func TestNewIPWhitelister(t *testing.T) {
 				{IP: net.IPv4(1, 2, 3, 0), Mask: net.IPv4Mask(255, 255, 255, 0)},
 				{IP: net.ParseIP("fe80::"), Mask: net.IPMask(net.ParseIP("ffff::"))},
 			},
-			err: nil,
+			err: "",
 		}, {
 			desc: "IPv4 only",
 			whitelistStrings: []string{
@@ -72,26 +70,23 @@ func TestNewIPWhitelister(t *testing.T) {
 			expectedWhitelists: []*net.IPNet{
 				{IP: net.IPv4(127, 0, 0, 0), Mask: net.IPv4Mask(255, 0, 0, 0)},
 			},
-			err: nil,
+			err: "",
 		},
 	}
 
-	for index, tc := range cases {
-		tc := tc
-		t.Run(index, func(t *testing.T) {
+	for _, test := range cases {
+		test := test
+		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
-			whitelister, err := NewIPWhitelister(tc.whitelistStrings)
-			if !reflect.DeepEqual(err, tc.err) {
-				t.Errorf("expected err: %+v, got: %+v", tc.err, err)
+			whitelister, err := NewIPWhitelister(test.whitelistStrings)
+			if test.err != "" {
+				assert.EqualError(t, err, test.err)
 				return
 			}
-			if tc.err != nil {
-				// expected error
-				return
-			}
+			assert.NoError(t, err);
 
 			for index, actual := range whitelister.whitelists {
-				expected := tc.expectedWhitelists[index]
+				expected := test.expectedWhitelists[index]
 				if !actual.IP.Equal(expected.IP) || actual.Mask.String() != expected.Mask.String() {
 					t.Errorf("unexpected result while comparing parsed ip whitelists, expected %s, got %s", actual, expected)
 				}
@@ -271,16 +266,14 @@ func TestIPWhitelisterHandle(t *testing.T) {
 		},
 	}
 
-	for index, tc := range cases {
-		tc := tc
-		t.Run(index, func(t *testing.T) {
+	for _, test := range cases {
+		test := test
+		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
-			whitelister, err := NewIPWhitelister(tc.whitelistStrings)
+			whitelister, err := NewIPWhitelister(test.whitelistStrings)
 
-			assert.NoError(t, err, "there should be no error")
-			if !assert.NotNil(t, whitelister, "this should not be nil") {
-				return
-			}
+			assert.NoError(t, err)
+			assert.NotNil(t, whitelister)
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintln(w, "traefik")
@@ -288,7 +281,7 @@ func TestIPWhitelisterHandle(t *testing.T) {
 			n := negroni.New(whitelister)
 			n.UseHandler(handler)
 
-			for _, testIP := range tc.passIPs {
+			for _, testIP := range test.passIPs {
 				req, err := http.NewRequest("GET", "/", nil)
 				assert.NoError(t, err)
 
@@ -296,11 +289,11 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				recorder := httptest.NewRecorder()
 				n.ServeHTTP(recorder, req)
 
-				assert.Equal(t, http.StatusOK, recorder.Code, testIP+" should have passed "+index)
+				assert.Equal(t, http.StatusOK, recorder.Code, testIP+" should have passed "+test.desc)
 				assert.Contains(t, recorder.Body.String(), "traefik")
 			}
 
-			for _, testIP := range tc.rejectIPs {
+			for _, testIP := range test.rejectIPs {
 				req, err := http.NewRequest("GET", "/", nil)
 				assert.NoError(t, err)
 
@@ -308,7 +301,7 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				recorder := httptest.NewRecorder()
 				n.ServeHTTP(recorder, req)
 
-				assert.Equal(t, http.StatusForbidden, recorder.Code, testIP+" should not have passed "+index)
+				assert.Equal(t, http.StatusForbidden, recorder.Code, testIP+" should not have passed "+test.desc)
 				assert.NotContains(t, recorder.Body.String(), "traefik")
 			}
 		})
