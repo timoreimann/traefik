@@ -76,21 +76,22 @@ func TestNewIPWhitelister(t *testing.T) {
 		},
 	}
 
-	for index, e := range cases {
+	for index, tc := range cases {
+		tc := tc
 		t.Run(index, func(t *testing.T) {
 			t.Parallel()
-			whitelister, err := NewIPWhitelister(e.whitelistStrings)
-			if !reflect.DeepEqual(err, e.err) {
-				t.Errorf("expected err: %+v, got: %+v", e.err, err)
+			whitelister, err := NewIPWhitelister(tc.whitelistStrings)
+			if !reflect.DeepEqual(err, tc.err) {
+				t.Errorf("expected err: %+v, got: %+v", tc.err, err)
 				return
 			}
-			if e.err != nil {
+			if tc.err != nil {
 				// expected error
 				return
 			}
 
 			for index, actual := range whitelister.whitelists {
-				expected := e.expectedWhitelists[index]
+				expected := tc.expectedWhitelists[index]
 				if !actual.IP.Equal(expected.IP) || actual.Mask.String() != expected.Mask.String() {
 					t.Errorf("unexpected result while comparing parsed ip whitelists, expected %s, got %s", actual, expected)
 				}
@@ -270,10 +271,11 @@ func TestIPWhitelisterHandle(t *testing.T) {
 		},
 	}
 
-	for index, e := range cases {
+	for index, tc := range cases {
+		tc := tc
 		t.Run(index, func(t *testing.T) {
-			//t.Parallel()
-			whitelister, err := NewIPWhitelister(e.whitelistStrings)
+			t.Parallel()
+			whitelister, err := NewIPWhitelister(tc.whitelistStrings)
 
 			assert.NoError(t, err, "there should be no error")
 			if !assert.NotNil(t, whitelister, "this should not be nil") {
@@ -286,7 +288,7 @@ func TestIPWhitelisterHandle(t *testing.T) {
 			n := negroni.New(whitelister)
 			n.UseHandler(handler)
 
-			for _, testIP := range e.passIPs {
+			for _, testIP := range tc.passIPs {
 				req, err := http.NewRequest("GET", "/", nil)
 				assert.NoError(t, err)
 
@@ -298,7 +300,7 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				assert.Contains(t, recorder.Body.String(), "traefik")
 			}
 
-			for _, testIP := range e.rejectIPs {
+			for _, testIP := range tc.rejectIPs {
 				req, err := http.NewRequest("GET", "/", nil)
 				assert.NoError(t, err)
 
