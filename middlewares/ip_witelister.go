@@ -38,8 +38,6 @@ func NewIPWhitelister(whitelistStrings []string) (*IPWhitelister, error) {
 }
 
 func (whitelister *IPWhitelister) handle(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	var match *net.IPNet
-
 	remoteIP, err := ipFromRemoteAddr(r.RemoteAddr)
 	if err != nil {
 		log.Warnf("unable to parse remote-address from header: %s - rejecting", r.RemoteAddr)
@@ -49,7 +47,7 @@ func (whitelister *IPWhitelister) handle(w http.ResponseWriter, r *http.Request,
 
 	for _, whitelist := range whitelister.whitelists {
 		if whitelist.Contains(*remoteIP) {
-			log.Debugf("source-IP %s matched whitelist %s - passing", remoteIP, match)
+			log.Debugf("source-IP %s matched whitelist %s - passing", remoteIP, whitelist)
 			next.ServeHTTP(w, r)
 			return
 		}
