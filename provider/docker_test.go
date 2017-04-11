@@ -12,6 +12,7 @@ import (
 	"github.com/docker/engine-api/types/swarm"
 	"github.com/docker/go-connections/nat"
 	"strconv"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestDockerGetFrontendName(t *testing.T) {
@@ -1254,10 +1255,10 @@ func TestDockerLoadDockerConfig(t *testing.T) {
 		actualConfig := provider.loadDockerConfig(dockerDataList)
 		// Compare backends
 		if !reflect.DeepEqual(actualConfig.Backends, c.expectedBackends) {
-			t.Fatalf("expected %#v, got %#v", c.expectedBackends, actualConfig.Backends)
+			t.Fatalf("expected %#v, got %#v", spew.Sdump(c.expectedBackends), spew.Sdump(actualConfig.Backends))
 		}
 		if !reflect.DeepEqual(actualConfig.Frontends, c.expectedFrontends) {
-			t.Fatalf("expected %#v, got %#v", c.expectedFrontends, actualConfig.Frontends)
+			t.Fatalf("expected %#v, got %#v", spew.Sdump(c.expectedFrontends), spew.Sdump(actualConfig.Frontends))
 		}
 	}
 }
@@ -2290,10 +2291,10 @@ func TestSwarmLoadDockerConfig(t *testing.T) {
 		actualConfig := provider.loadDockerConfig(dockerDataList)
 		// Compare backends
 		if !reflect.DeepEqual(actualConfig.Backends, c.expectedBackends) {
-			t.Fatalf("expected %#v, got %#v", c.expectedBackends, actualConfig.Backends)
+			t.Fatalf("expected %#v, got %#v", spew.Sdump(c.expectedBackends), spew.Sdump(actualConfig.Backends))
 		}
 		if !reflect.DeepEqual(actualConfig.Frontends, c.expectedFrontends) {
-			t.Fatalf("expected %#v, got %#v", c.expectedFrontends, actualConfig.Frontends)
+			t.Fatalf("expected %#v, got %#v", spew.Sdump(c.expectedFrontends), spew.Sdump(actualConfig.Frontends))
 		}
 	}
 }
@@ -2990,10 +2991,10 @@ func TestDockerLoadDockerServiceConfig(t *testing.T) {
 		actualConfig := provider.loadDockerConfig(dockerDataList)
 		// Compare backends
 		if !reflect.DeepEqual(actualConfig.Backends, c.expectedBackends) {
-			t.Fatalf("expected %#v, got %#v", c.expectedBackends, actualConfig.Backends)
+			t.Fatalf("expected %#v, got %#v", spew.Sdump(c.expectedBackends), spew.Sdump(actualConfig.Backends))
 		}
 		if !reflect.DeepEqual(actualConfig.Frontends, c.expectedFrontends) {
-			t.Fatalf("expected %#v, got %#v", c.expectedFrontends, actualConfig.Frontends)
+			t.Fatalf("expected %#v, got %#v", spew.Sdump(c.expectedFrontends), spew.Sdump(actualConfig.Frontends))
 		}
 	}
 }
