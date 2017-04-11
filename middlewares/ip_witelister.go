@@ -2,10 +2,11 @@ package middlewares
 
 import (
 	"fmt"
-	"github.com/codegangsta/negroni"
-	"github.com/containous/traefik/log"
 	"net"
 	"net/http"
+
+	"github.com/codegangsta/negroni"
+	"github.com/containous/traefik/log"
 )
 
 // IPWhitelister is a middleware that provides Checks of the Requesting IP against a set of Whitelists

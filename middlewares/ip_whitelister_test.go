@@ -3,13 +3,14 @@ package middlewares
 import (
 	"errors"
 	"fmt"
-	"github.com/codegangsta/negroni"
-	"github.com/stretchr/testify/assert"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
+
+	"github.com/codegangsta/negroni"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewIPWhitelister(t *testing.T) {
