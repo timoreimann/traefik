@@ -8,25 +8,27 @@ import (
 )
 
 func TestNewServerWithoutWhitelistSourceRange(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		desc                 string
 		whitelistStrings     []string
 		middlewareConfigured bool
 		err                  error
 	}{
-		"no whitelists configued": {
+		{
+			desc:                 "no whitelists configued",
 			whitelistStrings:     nil,
 			middlewareConfigured: false,
 			err:                  nil,
-		},
-		"whitelists configued": {
+		}, {
+			desc: "whitelists configued",
 			whitelistStrings: []string{
 				"1.2.3.4/24",
 				"fe80::/16",
 			},
 			middlewareConfigured: true,
 			err:                  nil,
-		},
-		"invalid whitelists configued": {
+		}, {
+			desc: "invalid whitelists configued",
 			whitelistStrings: []string{
 				"foo",
 			},
@@ -35,16 +37,17 @@ func TestNewServerWithoutWhitelistSourceRange(t *testing.T) {
 		},
 	}
 
-	for index, e := range cases {
-		t.Run(index, func(t *testing.T) {
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
-			middleware, err := configureIPWhitelistMiddleware(e.whitelistStrings)
+			middleware, err := configureIPWhitelistMiddleware(tc.whitelistStrings)
 
-			if !reflect.DeepEqual(err, e.err) {
-				t.Errorf("expected err: %+v, got: %+v", e.err, err)
+			if !reflect.DeepEqual(err, tc.err) {
+				t.Errorf("expected err: %+v, got: %+v", tc.err, err)
 			}
 
-			if e.middlewareConfigured {
+			if tc.middlewareConfigured {
 				if !assert.NotNil(t, middleware, "not expected middleware to be configured") {
 					return
 				}
