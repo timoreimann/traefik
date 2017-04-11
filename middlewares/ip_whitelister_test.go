@@ -121,7 +121,7 @@ func TestIPWhitelisterHandle(t *testing.T) {
 			},
 		},
 		{
-			desc: "IPv4 sinlge IP",
+			desc: "IPv4 single IP",
 			whitelistStrings: []string{
 				"8.8.8.8/32",
 			},
@@ -251,7 +251,7 @@ func TestIPWhitelisterHandle(t *testing.T) {
 			},
 		},
 		{
-			desc: "broken IP-adresses",
+			desc: "broken IP-addresses",
 			whitelistStrings: []string{
 				"127.0.0.1/32",
 			},
