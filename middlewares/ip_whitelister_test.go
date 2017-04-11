@@ -14,22 +14,24 @@ import (
 )
 
 func TestNewIPWhitelister(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		desc               string
 		whitelistStrings   []string
 		expectedWhitelists []*net.IPNet
 		err                error
 	}{
-		"nil whitelist": {
+		{
+			desc:               "nil whitelist",
 			whitelistStrings:   nil,
 			expectedWhitelists: nil,
 			err:                errors.New("no whitelists provided"),
-		},
-		"empty whitelist": {
+		}, {
+			desc:               "empty whitelist",
 			whitelistStrings:   []string{},
 			expectedWhitelists: nil,
 			err:                errors.New("no whitelists provided"),
-		},
-		"whitelist containing empty string": {
+		}, {
+			desc: "whitelist containing empty string",
 			whitelistStrings: []string{
 				"1.2.3.4/24",
 				"",
@@ -37,22 +39,22 @@ func TestNewIPWhitelister(t *testing.T) {
 			},
 			expectedWhitelists: nil,
 			err:                errors.New("parsing CIDR whitelist <nil>: invalid CIDR address: "),
-		},
-		"whitelist containing only an empty string": {
+		}, {
+			desc: "whitelist containing only an empty string",
 			whitelistStrings: []string{
 				"",
 			},
 			expectedWhitelists: nil,
 			err:                errors.New("parsing CIDR whitelist <nil>: invalid CIDR address: "),
-		},
-		"whitelist containing an invalid string": {
+		}, {
+			desc: "whitelist containing an invalid string",
 			whitelistStrings: []string{
 				"foo",
 			},
 			expectedWhitelists: nil,
 			err:                errors.New("parsing CIDR whitelist foo: invalid CIDR address: foo"),
-		},
-		"IPv4 & IPv6 whitelist": {
+		}, {
+			desc: "IPv4 & IPv6 whitelist",
 			whitelistStrings: []string{
 				"1.2.3.4/24",
 				"fe80::/16",
@@ -62,8 +64,8 @@ func TestNewIPWhitelister(t *testing.T) {
 				{IP: net.ParseIP("fe80::"), Mask: net.IPMask(net.ParseIP("ffff::"))},
 			},
 			err: nil,
-		},
-		"IPv4 only": {
+		}, {
+			desc: "IPv4 only",
 			whitelistStrings: []string{
 				"127.0.0.1/8",
 			},
@@ -98,12 +100,14 @@ func TestNewIPWhitelister(t *testing.T) {
 }
 
 func TestIPWhitelisterHandle(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		desc             string
 		whitelistStrings []string
 		passIPs          []string
 		rejectIPs        []string
 	}{
-		"IPv4": {
+		{
+			desc: "IPv4",
 			whitelistStrings: []string{
 				"1.2.3.4/24",
 			},
@@ -120,7 +124,8 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				"8.8.8.8",
 			},
 		},
-		"IPv4 sinlge IP": {
+		{
+			desc: "IPv4 sinlge IP",
 			whitelistStrings: []string{
 				"8.8.8.8/32",
 			},
@@ -136,7 +141,8 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				"127.0.0.1",
 			},
 		},
-		"multiple IPv4": {
+		{
+			desc: "multiple IPv4",
 			whitelistStrings: []string{
 				"1.2.3.4/24",
 				"8.8.8.8/8",
@@ -159,7 +165,8 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				"4.8.8.8",
 			},
 		},
-		"IPv6": {
+		{
+			desc: "IPv6",
 			whitelistStrings: []string{
 				"2a03:4000:6:d080::/64",
 			},
@@ -176,7 +183,8 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				"[4242::1]",
 			},
 		},
-		"IPv6 single IP": {
+		{
+			desc: "IPv6 single IP",
 			whitelistStrings: []string{
 				"2a03:4000:6:d080::42/128",
 			},
@@ -189,7 +197,8 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				"[2a03:4000:6:d080::43]",
 			},
 		},
-		"multiple IPv6": {
+		{
+			desc: "multiple IPv6",
 			whitelistStrings: []string{
 				"2a03:4000:6:d080::/64",
 				"fe80::/16",
@@ -209,7 +218,8 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				"[4242::1]",
 			},
 		},
-		"multiple IPv6 & IPv4": {
+		{
+			desc: "multiple IPv6 & IPv4",
 			whitelistStrings: []string{
 				"2a03:4000:6:d080::/64",
 				"fe80::/16",
@@ -244,7 +254,8 @@ func TestIPWhitelisterHandle(t *testing.T) {
 				"4.8.8.8",
 			},
 		},
-		"broken IP-adresses": {
+		{
+			desc: "broken IP-adresses",
 			whitelistStrings: []string{
 				"127.0.0.1/32",
 			},
