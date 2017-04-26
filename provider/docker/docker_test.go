@@ -402,14 +402,14 @@ func TestDockerGetPassHostHeader(t *testing.T) {
 
 func TestDockerGetWhitelistSourceRange(t *testing.T) {
 	containers := []struct {
-		desc     string
+		desc      string
 		container docker.ContainerJSON
-		expected []string
+		expected  []string
 	}{
 		{
-			desc:     "no whitelist-label",
+			desc:      "no whitelist-label",
 			container: containerJSON(),
-			expected: nil,
+			expected:  nil,
 		},
 		{
 			desc: "whitelist-label with empty string",

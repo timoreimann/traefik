@@ -736,7 +736,6 @@ func (server *Server) loadConfig(configurations configs, globalConfiguration Glo
 							}
 						}
 
-
 						ipWhitelistMiddleware, err := configureIPWhitelistMiddleware(frontend.WhitelistSourceRange)
 						if err != nil {
 							log.Fatalf("Error creating IP Whitelister: %s", err)
