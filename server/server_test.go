@@ -2,8 +2,8 @@ package server
 
 import (
 	"github.com/stretchr/testify/assert"
-	"testing"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func TestNewServerWithoutWhitelistSourceRange(t *testing.T) {
