@@ -2,7 +2,7 @@ package provider
 
 import "strings"
 
-func splitAndTrimString(separatedString string) []string {
+func SplitAndTrimString(separatedString string) []string {
 	listOfStrings := strings.Split(separatedString, ",")
 	var trimmedListOfStrings []string
 	for _, s := range listOfStrings {

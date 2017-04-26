@@ -58,11 +58,13 @@
 #
 # ProvidersThrottleDuration = "5s"
 
-# If non-zero, controls the maximum idle (keep-alive) to keep per-host.  If zero, DefaultMaxIdleConnsPerHost is used.
-# If you encounter 'too many open files' errors, you can either change this value, or change `ulimit` value.
+# Controls the maximum idle (keep-alive) connections to keep per-host. If zero, DefaultMaxIdleConnsPerHost
+# from the Go standard library net/http module is used.
+# If you encounter 'too many open files' errors, you can either increase this
+# value or change the `ulimit`.
 #
 # Optional
-# Default: http.DefaultMaxIdleConnsPerHost
+# Default: 200
 #
 # MaxIdleConnsPerHost = 200
 
@@ -597,6 +599,16 @@
 #
 # keepAlive = "10s"
 
+# By default, a task's IP address (as returned by the Marathon API) is used as 
+# backend server if an IP-per-task configuration can be found; otherwise, the
+# name of the host running the task is used.
+# The latter behavior can be enforced by enabling this switch.
+# 
+# Optional
+# Default: false
+#
+# forceTaskHostname: false 
+
 ################################################################
 # Mesos configuration backend
 ################################################################
@@ -652,12 +664,14 @@
 # Zookeeper timeout (in seconds)
 #
 # Optional
+# Default: 30
 #
 # ZkDetectionTimeout = 30
 
 # Polling interval (in seconds)
 #
 # Optional
+# Default: 30
 #
 # RefreshSeconds = 30
 
@@ -670,8 +684,9 @@
 # HTTP Timeout (in seconds)
 #
 # Optional
+# Default: 30
 #
-# StateTimeoutSecond = "host"
+# StateTimeoutSecond = "30"
 
 ################################################################
 # Kubernetes Ingress configuration backend
@@ -991,28 +1006,28 @@
 #
 # Optional
 #
-[rancher]
+#[rancher]
 
 # Default domain used.
 # Can be overridden by setting the "traefik.domain" label on an service.
 #
 # Required
 #
-domain = "rancher.localhost"
+#domain = "rancher.localhost"
 
 # Enable watch Rancher changes
 #
 # Optional
 # Default: true
 #
-Watch = true
+#Watch = true
 
 # Expose Rancher services by default in traefik
 #
 # Optional
 # Default: true
 #
-ExposedByDefault = false
+#ExposedByDefault = false
 
 # Endpoint to use when connecting to Rancher
 #

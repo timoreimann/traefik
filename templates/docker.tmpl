@@ -52,6 +52,9 @@
   entryPoints = [{{range getServiceEntryPoints $container $serviceName}}
     "{{.}}",
   {{end}}]
+  basicAuth = [{{range getServiceBasicAuth $container $serviceName}}
+    "{{.}}",
+  {{end}}]
     [frontends."frontend-{{getServiceBackend $container $serviceName}}".routes."service-{{$serviceName | replace "/" "" | replace "." "-"}}"]
     rule = "{{getServiceFrontendRule $container $serviceName}}"
   {{end}}
@@ -66,6 +69,9 @@
   {{end}}
   priority = {{getPriority $container}}
   entryPoints = [{{range getEntryPoints $container}}
+    "{{.}}",
+  {{end}}]
+  basicAuth = [{{range getBasicAuth $container}}
     "{{.}}",
   {{end}}]
     [frontends."frontend-{{$frontend}}".routes."route-frontend-{{$frontend}}"]
