@@ -1,9 +1,7 @@
 package server
 
 import (
-	"errors"
 	"github.com/stretchr/testify/assert"
-	"reflect"
 	"testing"
 )
 
@@ -12,13 +10,13 @@ func TestNewServerWithoutWhitelistSourceRange(t *testing.T) {
 		desc                 string
 		whitelistStrings     []string
 		middlewareConfigured bool
-		err                  error
+		errMessage           string
 	}{
 		{
 			desc:                 "no whitelists configued",
 			whitelistStrings:     nil,
 			middlewareConfigured: false,
-			err:                  nil,
+			errMessage:           "",
 		}, {
 			desc: "whitelists configued",
 			whitelistStrings: []string{
@@ -26,14 +24,14 @@ func TestNewServerWithoutWhitelistSourceRange(t *testing.T) {
 				"fe80::/16",
 			},
 			middlewareConfigured: true,
-			err:                  nil,
+			errMessage:           "",
 		}, {
 			desc: "invalid whitelists configued",
 			whitelistStrings: []string{
 				"foo",
 			},
 			middlewareConfigured: false,
-			err:                  errors.New("parsing CIDR whitelist <nil>: invalid CIDR address: foo"),
+			errMessage:           "parsing CIDR whitelist <nil>: invalid CIDR address: foo",
 		},
 	}
 
@@ -43,9 +41,11 @@ func TestNewServerWithoutWhitelistSourceRange(t *testing.T) {
 			t.Parallel()
 			middleware, err := configureIPWhitelistMiddleware(tc.whitelistStrings)
 
-			if !reflect.DeepEqual(err, tc.err) {
-				t.Errorf("expected err: %+v, got: %+v", tc.err, err)
+			if tc.errMessage != "" {
+				assert.EqualError(t, err, tc.errMessage)
+				return
 			}
+			assert.NoError(t, err)
 
 			if tc.middlewareConfigured {
 				if !assert.NotNil(t, middleware, "not expected middleware to be configured") {
