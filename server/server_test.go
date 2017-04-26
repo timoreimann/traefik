@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewServerWithoutWhitelistSourceRange(t *testing.T) {
@@ -42,19 +43,14 @@ func TestNewServerWithoutWhitelistSourceRange(t *testing.T) {
 			middleware, err := configureIPWhitelistMiddleware(tc.whitelistStrings)
 
 			if tc.errMessage != "" {
-				assert.EqualError(t, err, tc.errMessage)
-				return
+				require.EqualError(t, err, tc.errMessage)
 			}
 			assert.NoError(t, err)
 
 			if tc.middlewareConfigured {
-				if !assert.NotNil(t, middleware, "not expected middleware to be configured") {
-					return
-				}
+				require.NotNil(t, middleware, "not expected middleware to be configured")
 			} else {
-				if !assert.Nil(t, middleware, "expected middleware to be configured") {
-					return
-				}
+				require.Nil(t, middleware, "expected middleware to be configured")
 			}
 		})
 	}

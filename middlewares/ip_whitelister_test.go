@@ -9,6 +9,7 @@ import (
 
 	"github.com/codegangsta/negroni"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewIPWhitelister(t *testing.T) {
@@ -80,8 +81,7 @@ func TestNewIPWhitelister(t *testing.T) {
 			t.Parallel()
 			whitelister, err := NewIPWhitelister(test.whitelistStrings)
 			if test.errMessage != "" {
-				assert.EqualError(t, err, test.errMessage)
-				return
+				require.EqualError(t, err, test.errMessage)
 			}
 			assert.NoError(t, err)
 
@@ -272,7 +272,7 @@ func TestIPWhitelisterHandle(t *testing.T) {
 			whitelister, err := NewIPWhitelister(test.whitelistStrings)
 
 			assert.NoError(t, err)
-			assert.NotNil(t, whitelister)
+			require.NotNil(t, whitelister)
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintln(w, "traefik")
