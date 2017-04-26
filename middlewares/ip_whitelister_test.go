@@ -16,18 +16,18 @@ func TestNewIPWhitelister(t *testing.T) {
 		desc               string
 		whitelistStrings   []string
 		expectedWhitelists []*net.IPNet
-		err                string
+		errMessage         string
 	}{
 		{
 			desc:               "nil whitelist",
 			whitelistStrings:   nil,
 			expectedWhitelists: nil,
-			err:                "no whitelists provided",
+			errMessage:         "no whitelists provided",
 		}, {
 			desc:               "empty whitelist",
 			whitelistStrings:   []string{},
 			expectedWhitelists: nil,
-			err:                "no whitelists provided",
+			errMessage:         "no whitelists provided",
 		}, {
 			desc: "whitelist containing empty string",
 			whitelistStrings: []string{
@@ -36,21 +36,21 @@ func TestNewIPWhitelister(t *testing.T) {
 				"fe80::/16",
 			},
 			expectedWhitelists: nil,
-			err:                "parsing CIDR whitelist <nil>: invalid CIDR address: ",
+			errMessage:         "parsing CIDR whitelist <nil>: invalid CIDR address: ",
 		}, {
 			desc: "whitelist containing only an empty string",
 			whitelistStrings: []string{
 				"",
 			},
 			expectedWhitelists: nil,
-			err:                "parsing CIDR whitelist <nil>: invalid CIDR address: ",
+			errMessage:         "parsing CIDR whitelist <nil>: invalid CIDR address: ",
 		}, {
 			desc: "whitelist containing an invalid string",
 			whitelistStrings: []string{
 				"foo",
 			},
 			expectedWhitelists: nil,
-			err:                "parsing CIDR whitelist <nil>: invalid CIDR address: foo",
+			errMessage:         "parsing CIDR whitelist <nil>: invalid CIDR address: foo",
 		}, {
 			desc: "IPv4 & IPv6 whitelist",
 			whitelistStrings: []string{
@@ -61,7 +61,7 @@ func TestNewIPWhitelister(t *testing.T) {
 				{IP: net.IPv4(1, 2, 3, 0).To4(), Mask: net.IPv4Mask(255, 255, 255, 0)},
 				{IP: net.ParseIP("fe80::"), Mask: net.IPMask(net.ParseIP("ffff::"))},
 			},
-			err: "",
+			errMessage: "",
 		}, {
 			desc: "IPv4 only",
 			whitelistStrings: []string{
@@ -70,7 +70,7 @@ func TestNewIPWhitelister(t *testing.T) {
 			expectedWhitelists: []*net.IPNet{
 				{IP: net.IPv4(127, 0, 0, 0).To4(), Mask: net.IPv4Mask(255, 0, 0, 0)},
 			},
-			err: "",
+			errMessage: "",
 		},
 	}
 
@@ -79,8 +79,8 @@ func TestNewIPWhitelister(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 			whitelister, err := NewIPWhitelister(test.whitelistStrings)
-			if test.err != "" {
-				assert.EqualError(t, err, test.err)
+			if test.errMessage != "" {
+				assert.EqualError(t, err, test.errMessage)
 				return
 			}
 			assert.NoError(t, err)
