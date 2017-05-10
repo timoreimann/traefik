@@ -10,6 +10,7 @@ import (
 	"github.com/containous/flaeg"
 	"github.com/containous/traefik/healthcheck"
 	"github.com/containous/traefik/types"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/vulcand/oxy/roundrobin"
 )
 
@@ -154,6 +155,67 @@ func TestServerParseHealthCheckOptions(t *testing.T) {
 			gotOpts := parseHealthCheckOptions(lb, "backend", test.hc, HealthCheckConfig{Interval: flaeg.Duration(globalInterval)})
 			if !reflect.DeepEqual(gotOpts, test.wantOpts) {
 				t.Errorf("got health check options %+v, want %+v", gotOpts, test.wantOpts)
+			}
+		})
+	}
+}
+
+func TestConfigureBackends(t *testing.T) {
+	validMethod := "Drr"
+	defaultMethod := "wrr"
+
+	tests := []struct {
+		desc string
+		lb   *types.LoadBalancer
+	}{
+		{
+			desc: "valid load balancer method with sticky enabled",
+			lb: &types.LoadBalancer{
+				Method: validMethod,
+				Sticky: true,
+			},
+		},
+		{
+			desc: "valid load balancer method with sticky disabled",
+			lb: &types.LoadBalancer{
+				Method: validMethod,
+				Sticky: false,
+			},
+		},
+		{
+			desc: "invalid load balancer method with sticky enabled",
+			lb: &types.LoadBalancer{
+				Method: "Invalid",
+				Sticky: true,
+			},
+		},
+		{
+			desc: "invalid load balancer method with sticky disabled",
+			lb: &types.LoadBalancer{
+				Method: "Invalid",
+				Sticky: false,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+			backend := &types.Backend{
+				LoadBalancer: test.lb,
+			}
+
+			configureBackends(map[string]*types.Backend{
+				"backend": backend,
+			})
+
+			wantLB := test.lb
+			if wantLB.Method != validMethod {
+				wantLB.Method = defaultMethod
+			}
+			if !reflect.DeepEqual(backend.LoadBalancer, wantLB) {
+				t.Errorf("got backend load-balancer\n%v\nwant\n%v\n", spew.Sdump(backend.LoadBalancer), spew.Sdump(wantLB))
 			}
 		})
 	}

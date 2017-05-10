@@ -88,11 +88,8 @@ func NewLoadBalancerMethod(loadBalancer *LoadBalancer) (LoadBalancerMethod, erro
 			}
 		}
 	}
-	return Wrr, ErrInvalidLoadBalancerMethod
+	return Wrr, fmt.Errorf("invalid load-balancing method '%s'", loadBalancer.Method)
 }
-
-// ErrInvalidLoadBalancerMethod is thrown when the specified load balancing method is invalid.
-var ErrInvalidLoadBalancerMethod = errors.New("Invalid method, using default")
 
 // Configuration of a provider.
 type Configuration struct {
