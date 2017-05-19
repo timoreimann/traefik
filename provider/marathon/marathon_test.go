@@ -392,6 +392,140 @@ func TestMarathonLoadConfig(t *testing.T) {
 				},
 			},
 		},
+		{
+			applications: &marathon.Applications{
+				Apps: []marathon.Application{
+					{
+						ID:     "/testMultiPort",
+						Ports:  []int{80, 81},
+						Labels: &map[string]string{},
+					},
+				},
+			},
+			tasks: &marathon.Tasks{
+				Tasks: []marathon.Task{
+					{
+						ID:    "testMultiPort",
+						AppID: "/testMultiPort",
+						Host:  "localhost",
+						Ports: []int{80, 81},
+						IPAddresses: []*marathon.IPAddress{
+							{
+								IPAddress: "127.0.0.1",
+								Protocol:  "tcp",
+							},
+						},
+					},
+				},
+			},
+			expectedFrontends: map[string]*types.Frontend{
+				`frontend-testMultiPort`: {
+					Backend:        "backend-testMultiPort",
+					PassHostHeader: true,
+					EntryPoints:    []string{},
+					Routes: map[string]types.Route{
+						`route-host-testMultiPort`: {
+							Rule: "Host:testMultiPort.docker.localhost",
+						},
+					},
+				},
+			},
+			expectedBackends: map[string]*types.Backend{
+				"backend-testMultiPort": {
+					Servers: map[string]types.Server{
+						"server-testMultiPort": {
+							URL:    "http://localhost:80",
+							Weight: 0,
+						},
+					},
+					CircuitBreaker: nil,
+				},
+			},
+		},
+		{
+			applications: &marathon.Applications{
+				Apps: []marathon.Application{
+					{
+						ID:    "/testMultiPortServices",
+						Ports: []int{80, 81},
+						Labels: &map[string]string{
+							"traefik.backend.maxconn.amount":        "1000",
+							"traefik.backend.maxconn.extractorfunc": "client.ip",
+							"traefik.web.port":                      "80",
+							"traefik.admin.port":                    "81",
+							"traefik.web.frontend.rule":             "Host:web.testMultiPortServices.docker.localhost",
+							"traefik.admin.frontend.rule":           "Host:admin.testMultiPortServices.docker.localhost",
+						},
+					},
+				},
+			},
+			tasks: &marathon.Tasks{
+				Tasks: []marathon.Task{
+					{
+						ID:    "testMultiPortServices",
+						AppID: "/testMultiPortServices",
+						Host:  "localhost",
+						Ports: []int{80, 81},
+						IPAddresses: []*marathon.IPAddress{
+							{
+								IPAddress: "127.0.0.1",
+								Protocol:  "tcp",
+							},
+						},
+					},
+				},
+			},
+			expectedFrontends: map[string]*types.Frontend{
+				`frontend-testMultiPortServices-web`: {
+					Backend:        "backend-testMultiPortServices-web",
+					PassHostHeader: true,
+					EntryPoints:    []string{},
+					Routes: map[string]types.Route{
+						`service-web`: {
+							Rule: "Host:web.testMultiPortServices.docker.localhost",
+						},
+					},
+				},
+				`frontend-testMultiPortServices-admin`: {
+					Backend:        "backend-testMultiPortServices-admin",
+					PassHostHeader: true,
+					EntryPoints:    []string{},
+					Routes: map[string]types.Route{
+						`service-admin`: {
+							Rule: "Host:admin.testMultiPortServices.docker.localhost",
+						},
+					},
+				},
+			},
+			expectedBackends: map[string]*types.Backend{
+				"backend-testMultiPortServices-web": {
+					Servers: map[string]types.Server{
+						"service-web": {
+							URL:    "http://localhost:80",
+							Weight: 0,
+						},
+					},
+					CircuitBreaker: nil,
+					MaxConn: &types.MaxConn{
+						Amount:        1000,
+						ExtractorFunc: "client.ip",
+					},
+				},
+				"backend-testMultiPortServices-admin": {
+					Servers: map[string]types.Server{
+						"service-admin": {
+							URL:    "http://localhost:81",
+							Weight: 0,
+						},
+					},
+					CircuitBreaker: nil,
+					MaxConn: &types.MaxConn{
+						Amount:        1000,
+						ExtractorFunc: "client.ip",
+					},
+				},
+			},
+		},
 	}
 
 	for _, c := range cases {
@@ -400,7 +534,7 @@ func TestMarathonLoadConfig(t *testing.T) {
 			appID = c.applications.Apps[0].ID
 		}
 		t.Run(fmt.Sprintf("app ID: %s", appID), func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			fakeClient := newFakeClient(c.applicationsError, c.applications, c.tasksError, c.tasks)
 			provider := &Provider{
 				Domain:           "docker.localhost",

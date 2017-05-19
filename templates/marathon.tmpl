@@ -1,40 +1,70 @@
 {{$apps := .Applications}}
 [backends]{{range .Tasks}}
+{{$task := . }}
+{{if hasTaskServices . $apps}}
+    {{$services := getTaskServiceNames . $apps}}
+    {{range $serviceIndex, $serviceName := $services}}
+    [backends."backend{{getTaskServiceBackend $task $apps $serviceName}}".servers.service-{{$serviceName | replace "/" "" | replace "." "-"}}]
+    url = "{{getServiceProtocol $task $apps $serviceName}}://{{getBackendServer $task $apps}}:{{getServicePort $task $apps $serviceName}}"
+    weight = {{getServiceWeight $task $apps $serviceName}}
+    {{end}}
+{{else}}
     [backends."backend{{getBackend . $apps}}".servers."server-{{.ID | replace "." "-"}}"]
     url = "{{getProtocol . $apps}}://{{getBackendServer . $apps}}:{{getPort . $apps}}"
     weight = {{getWeight . $apps}}
 {{end}}
+{{end}}
 
 {{range .Applications}}
-{{ if hasMaxConnLabels . }}
-      [backends."backend{{getFrontendBackend . }}".maxconn]
-        amount = {{getMaxConnAmount . }}
-        extractorfunc = "{{getMaxConnExtractorFunc . }}"
+{{$app := . }}
+{{$services := getServiceNames $app}}
+{{range $serviceIndex, $serviceName := $services}}
+{{ if hasMaxConnLabels $app }}
+      [backends."backend{{getServiceBackend $app $serviceName}}".maxconn]
+        amount = {{getMaxConnAmount $app }}
+        extractorfunc = "{{getMaxConnExtractorFunc $app }}"
 {{end}}
-{{ if hasLoadBalancerLabels . }}
-      [backends."backend{{getFrontendBackend . }}".loadbalancer]
-        method = "{{getLoadBalancerMethod . }}"
-        sticky = {{getSticky .}}
+{{ if hasLoadBalancerLabels $app }}
+      [backends."backend{{getServiceBackend $app $serviceName}}".loadbalancer]
+        method = "{{getLoadBalancerMethod $app }}"
+        sticky = {{getSticky $app}}
 {{end}}
-{{ if hasCircuitBreakerLabels . }}
-      [backends."backend{{getFrontendBackend . }}".circuitbreaker]
-        expression = "{{getCircuitBreakerExpression . }}"
+{{ if hasCircuitBreakerLabels $app }}
+      [backends."backend{{getServiceBackend $app $serviceName}}".circuitbreaker]
+        expression = "{{getCircuitBreakerExpression $app }}"
 {{end}}
-{{ if hasHealthCheckLabels . }}
-      [backends."backend{{getFrontendBackend . }}".healthcheck]
-        path = "{{getHealthCheckPath . }}"
-        interval = "{{getHealthCheckInterval . }}"
+{{ if hasHealthCheckLabels $app }}
+      [backends."backend{{getServiceBackend $app $serviceName}}".healthcheck]
+        path = "{{getHealthCheckPath $app }}"
+        interval = "{{getHealthCheckInterval $app }}"
+{{end}}
 {{end}}
 {{end}}
 
 [frontends]{{range .Applications}}
-  [frontends."frontend{{.ID | replace "/" "-"}}"]
+  {{$app := . }}
+  {{if hasServices .}}
+  {{$services := getServiceNames .}}
+  {{range $serviceIndex, $serviceName := $services}}
+  [frontends."frontend{{getServiceBackend $app $serviceName}}"]
+  backend = "backend{{getServiceBackend $app $serviceName}}"
+  passHostHeader = {{getServicePassHostHeader $app $serviceName}}
+  priority = {{getServicePriority $app $serviceName}}
+  entryPoints = [{{range getServiceEntryPoints $app $serviceName}}
+    "{{.}}",
+  {{end}}]
+    [frontends."frontend{{getServiceBackend $app $serviceName}}".routes."service-{{$serviceName | replace "/" "" | replace "." "-"}}"]
+    rule = "{{getServiceFrontendRule $app $serviceName}}"
+  {{end}}
+  {{else}}
+  [frontends."frontend{{getFrontendBackend .}}"]
   backend = "backend{{getFrontendBackend .}}"
   passHostHeader = {{getPassHostHeader .}}
   priority = {{getPriority .}}
   entryPoints = [{{range getEntryPoints .}}
     "{{.}}",
   {{end}}]
-    [frontends."frontend{{.ID | replace "/" "-"}}".routes."route-host{{.ID | replace "/" "-"}}"]
+    [frontends."frontend{{getFrontendBackend .}}".routes."route-host{{.ID | replace "/" "-"}}"]
     rule = "{{getFrontendRule .}}"
+  {{end}}
 {{end}}
