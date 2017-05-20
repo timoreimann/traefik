@@ -17,15 +17,33 @@ type StripPrefix struct {
 
 func (s *StripPrefix) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, prefix := range s.Prefixes {
-		if p := strings.TrimPrefix(r.URL.Path, strings.TrimSpace(prefix)); len(p) < len(r.URL.Path) {
-			r.URL.Path = p
-			r.Header[forwardedPrefixHeader] = []string{prefix}
-			r.RequestURI = r.URL.RequestURI()
-			s.Handler.ServeHTTP(w, r)
+		orgPrefix := strings.TrimSpace(prefix)
+		if orgPrefix == r.URL.Path {
+			r.URL.Path = "/"
+			s.serveRequest(w, r, orgPrefix)
+			return
+		}
+
+		prefix = orgPrefix
+		if !strings.HasSuffix(prefix, "/") {
+			prefix = orgPrefix + "/"
+		}
+
+		if p := strings.TrimPrefix(r.URL.Path, prefix); len(p) < len(r.URL.Path) {
+			if !strings.HasPrefix(p, "/") {
+				r.URL.Path = "/" + p
+			}
+			s.serveRequest(w, r, orgPrefix)
 			return
 		}
 	}
 	http.NotFound(w, r)
+}
+
+func (s *StripPrefix) serveRequest(w http.ResponseWriter, r *http.Request, prefix string) {
+	r.Header[forwardedPrefixHeader] = []string{prefix}
+	r.RequestURI = r.URL.RequestURI()
+	s.Handler.ServeHTTP(w, r)
 }
 
 // SetHandler sets handler
