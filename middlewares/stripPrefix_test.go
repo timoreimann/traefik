@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStripPrefix(t *testing.T) {
@@ -32,117 +35,96 @@ func TestStripPrefix(t *testing.T) {
 		})
 	}
 
-	suites := []struct {
+	type stripPrefixTestCase struct {
+		url                string
+		expectedStatusCode int
+		expectedBody       string
+	}
+
+	type stripPrefixTestSuite struct {
 		server *httptest.Server
 		desc   string
-		tests  []struct {
-			url      string
-			expected string
-			code     int
-		}
-	}{
+		tests  []stripPrefixTestCase
+	}
+
+	suites := []stripPrefixTestSuite{
 		{
 			server: stripServers["/norules"],
 			desc:   "no strip rules",
-			tests: []struct {
-				url      string
-				expected string
-				code     int
-			}{
+			tests: []stripPrefixTestCase{
 				{
-					url:      "/norules",
-					expected: "",
-					code:     http.StatusNotFound,
+					url:                "/norules",
+					expectedStatusCode: http.StatusNotFound,
 				},
 			},
 		},
 		{
 			server: stripServers["/"],
 			desc:   "strip / to handle wildcard (.*) requests",
-			tests: []struct {
-				url      string
-				expected string
-				code     int
-			}{
+			tests: []stripPrefixTestCase{
 				{
-					url:      "/",
-					expected: "/",
-					code:     http.StatusOK,
+					url:                "/",
+					expectedStatusCode: http.StatusOK,
+					expectedBody:       "/",
 				},
 			},
 		},
 		{
 			server: stripServers["/stat/"],
 			desc:   "strip /stat/ matching only subpaths",
-			tests: []struct {
-				url      string
-				expected string
-				code     int
-			}{
+			tests: []stripPrefixTestCase{
 				{
-					url:      "/stat",
-					expected: "",
-					code:     http.StatusNotFound,
+					url:                "/stat",
+					expectedStatusCode: http.StatusNotFound,
 				},
 				{
-					url:      "/stat/",
-					expected: "/",
-					code:     http.StatusOK,
+					url:                "/stat/",
+					expectedStatusCode: http.StatusOK,
+					expectedBody:       "/",
 				},
 				{
-					url:      "/status",
-					expected: "",
-					code:     http.StatusNotFound,
+					url:                "/status",
+					expectedStatusCode: http.StatusNotFound,
 				},
 				{
-					url:      "/stat/us",
-					expected: "/us",
-					code:     http.StatusOK,
+					url:                "/stat/us",
+					expectedStatusCode: http.StatusOK,
+					expectedBody:       "/us",
 				},
 			},
 		},
 		{
 			server: stripServers["/stat"],
 			desc:   "strip /stat matching absolute paths and subpaths",
-			tests: []struct {
-				url      string
-				expected string
-				code     int
-			}{
+			tests: []stripPrefixTestCase{
 				{
-					url:      "/stat",
-					expected: "/",
-					code:     http.StatusOK,
+					url:                "/stat",
+					expectedStatusCode: http.StatusOK,
+					expectedBody:       "/",
 				},
 				{
-					url:      "/stat/",
-					expected: "/",
-					code:     http.StatusOK,
+					url:                "/stat/",
+					expectedStatusCode: http.StatusOK,
+					expectedBody:       "/",
 				},
 				{
-					url:      "/status",
-					expected: "",
-					code:     http.StatusNotFound,
+					url:                "/status",
+					expectedStatusCode: http.StatusNotFound,
 				},
 				{
-					url:      "/stat/us",
-					expected: "/us",
-					code:     http.StatusOK,
+					url:                "/stat/us",
+					expectedStatusCode: http.StatusOK,
+					expectedBody:       "/us",
 				},
 			},
 		},
 		{
 			server: stripServers["/nomatch"],
 			desc:   "no matching strip rules",
-			tests: []struct {
-				url      string
-				expected string
-				code     int
-			}{
+			tests: []stripPrefixTestCase{
 				{
-					url:      "/anyurl",
-					expected: "",
-					code:     http.StatusNotFound,
+					url:                "/anyurl",
+					expectedStatusCode: http.StatusNotFound,
 				},
 			},
 		},
@@ -156,20 +138,14 @@ func TestStripPrefix(t *testing.T) {
 
 			for _, test := range suite.tests {
 				resp, err := http.Get(suite.server.URL + test.url)
-				if err != nil {
-					t.Fatalf("Failed to send GET request: %s", err)
-				}
+				require.NoError(t, err, "Failed to send GET request")
+				assert.Equal(t, test.expectedStatusCode, resp.StatusCode, "Unexpected status code")
 
-				if resp.StatusCode != test.code {
-					t.Errorf("Received non-%d response: %d", test.code, resp.StatusCode)
-				}
-				response, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					t.Fatalf("Failed to read response body: %s", err)
-				}
+				if test.expectedBody != "" {
+					response, err := ioutil.ReadAll(resp.Body)
+					require.NoError(t, err, "Failed to read response body")
 
-				if test.expected != "" && test.expected != string(response) {
-					t.Errorf("Unexpected response received: '%s', expected: '%s'", response, test.expected)
+					assert.Equal(t, test.expectedBody, string(response), "Unexpected response received")
 				}
 			}
 		})
