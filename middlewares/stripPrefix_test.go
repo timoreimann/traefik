@@ -35,18 +35,6 @@ func TestStripPrefix(t *testing.T) {
 		})
 	}
 
-	type stripPrefixTestCase struct {
-		url                string
-		expectedStatusCode int
-		expectedBody       string
-	}
-
-	type stripPrefixTestSuite struct {
-		server *httptest.Server
-		desc   string
-		tests  []stripPrefixTestCase
-	}
-
 	suites := []stripPrefixTestSuite{
 		{
 			server: stripServers["/norules"],
@@ -150,4 +138,16 @@ func TestStripPrefix(t *testing.T) {
 			}
 		})
 	}
+}
+
+type stripPrefixTestCase struct {
+	url                string
+	expectedStatusCode int
+	expectedBody       string
+}
+
+type stripPrefixTestSuite struct {
+	server *httptest.Server
+	desc   string
+	tests  []stripPrefixTestCase
 }
