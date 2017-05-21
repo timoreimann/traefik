@@ -31,9 +31,7 @@ func (s *StripPrefix) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
-	r.RequestURI = r.URL.RequestURI()
-	s.Handler.ServeHTTP(w, r)
+	http.NotFound(w, r)
 }
 
 func (s *StripPrefix) serveRequest(w http.ResponseWriter, r *http.Request, prefix string) {

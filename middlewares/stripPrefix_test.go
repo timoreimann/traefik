@@ -38,6 +38,7 @@ func TestStripPrefix(t *testing.T) {
 		tests  []struct {
 			url      string
 			expected string
+			code     int
 		}
 	}{
 		{
@@ -46,10 +47,12 @@ func TestStripPrefix(t *testing.T) {
 			tests: []struct {
 				url      string
 				expected string
+				code     int
 			}{
 				{
 					url:      "/norules",
-					expected: "/norules",
+					expected: "",
+					code:     http.StatusNotFound,
 				},
 			},
 		},
@@ -59,10 +62,12 @@ func TestStripPrefix(t *testing.T) {
 			tests: []struct {
 				url      string
 				expected string
+				code     int
 			}{
 				{
 					url:      "/",
 					expected: "/",
+					code:     http.StatusOK,
 				},
 			},
 		},
@@ -72,22 +77,27 @@ func TestStripPrefix(t *testing.T) {
 			tests: []struct {
 				url      string
 				expected string
+				code     int
 			}{
 				{
 					url:      "/stat",
-					expected: "/stat",
+					expected: "",
+					code:     http.StatusNotFound,
 				},
 				{
 					url:      "/stat/",
 					expected: "/",
+					code:     http.StatusOK,
 				},
 				{
 					url:      "/status",
-					expected: "/status",
+					expected: "",
+					code:     http.StatusNotFound,
 				},
 				{
 					url:      "/stat/us",
 					expected: "/us",
+					code:     http.StatusOK,
 				},
 			},
 		},
@@ -97,22 +107,27 @@ func TestStripPrefix(t *testing.T) {
 			tests: []struct {
 				url      string
 				expected string
+				code     int
 			}{
 				{
 					url:      "/stat",
 					expected: "/",
+					code:     http.StatusOK,
 				},
 				{
 					url:      "/stat/",
 					expected: "/",
+					code:     http.StatusOK,
 				},
 				{
 					url:      "/status",
-					expected: "/status",
+					expected: "",
+					code:     http.StatusNotFound,
 				},
 				{
 					url:      "/stat/us",
 					expected: "/us",
+					code:     http.StatusOK,
 				},
 			},
 		},
@@ -122,10 +137,12 @@ func TestStripPrefix(t *testing.T) {
 			tests: []struct {
 				url      string
 				expected string
+				code     int
 			}{
 				{
 					url:      "/anyurl",
-					expected: "/anyurl",
+					expected: "",
+					code:     http.StatusNotFound,
 				},
 			},
 		},
@@ -143,15 +160,15 @@ func TestStripPrefix(t *testing.T) {
 					t.Fatalf("Failed to send GET request: %s", err)
 				}
 
-				if resp.StatusCode != http.StatusOK {
-					t.Errorf("Received non-200 response: %d", resp.StatusCode)
+				if resp.StatusCode != test.code {
+					t.Errorf("Received non-%d response: %d", test.code, resp.StatusCode)
 				}
 				response, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
 					t.Fatalf("Failed to read response body: %s", err)
 				}
 
-				if test.expected != string(response) {
+				if test.expected != "" && test.expected != string(response) {
 					t.Errorf("Unexpected response received: '%s', expected: '%s'", response, test.expected)
 				}
 			}
