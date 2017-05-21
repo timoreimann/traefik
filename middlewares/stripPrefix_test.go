@@ -9,60 +9,152 @@ import (
 )
 
 func TestStripPrefix(t *testing.T) {
-
 	handlerPath := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, r.URL.Path)
 	})
 
-	// Note: This checks most-specific first, so we assume that a user
-	//        sets rules at most-specific first when using PathPrefixStrip
-	handler := &StripPrefix{
-		Prefixes: []string{"/c/api/123/", "/a/api/", "/stat", "/"},
+	stripServers := make(map[string]*httptest.Server)
+	stripServers["/norules"] = httptest.NewServer(&StripPrefix{
+		Prefixes: []string{},
 		Handler:  handlerPath,
+	})
+
+	stripList := []string{
+		"/",
+		"/stat/",
+		"/stat",
+		"/nomatch",
+	}
+	for _, stripPath := range stripList {
+		stripServers[stripPath] = httptest.NewServer(&StripPrefix{
+			Prefixes: []string{stripPath},
+			Handler:  handlerPath,
+		})
 	}
 
-	server := httptest.NewServer(handler)
-	defer server.Close()
-
-	tests := []struct {
-		expectedCode     int
-		expectedResponse string
-		url              string
+	suites := []struct {
+		server *httptest.Server
+		desc   string
+		tests  []struct {
+			url      string
+			expected string
+		}
 	}{
-		{url: "/", expectedCode: 200, expectedResponse: "/"},
-
-		{url: "/stat", expectedCode: 200, expectedResponse: "/"},
-		{url: "/stat/", expectedCode: 200, expectedResponse: "/"},
-		{url: "/status", expectedCode: 200, expectedResponse: "/status"},
-		{url: "/stat/us", expectedCode: 200, expectedResponse: "/us"},
-
-		{url: "/a/test", expectedCode: 200, expectedResponse: "/a/test"},
-		{url: "/a/api", expectedCode: 200, expectedResponse: "/a/api"},
-		{url: "/a/api/", expectedCode: 200, expectedResponse: "/"},
-		{url: "/a/api/test", expectedCode: 200, expectedResponse: "/test"},
-
-		{url: "/c/api/123/", expectedCode: 200, expectedResponse: "/"},
-		{url: "/c/api/123/test3", expectedCode: 200, expectedResponse: "/test3"},
-		{url: "/c/api/abc/test4", expectedCode: 200, expectedResponse: "/c/api/abc/test4"},
+		{
+			server: stripServers["/norules"],
+			desc:   "no strip rules",
+			tests: []struct {
+				url      string
+				expected string
+			}{
+				{
+					url:      "/norules",
+					expected: "/norules",
+				},
+			},
+		},
+		{
+			server: stripServers["/"],
+			desc:   "strip / to handle wildcard (.*) requests",
+			tests: []struct {
+				url      string
+				expected string
+			}{
+				{
+					url:      "/",
+					expected: "/",
+				},
+			},
+		},
+		{
+			server: stripServers["/stat/"],
+			desc:   "strip /stat/ matching only subpaths",
+			tests: []struct {
+				url      string
+				expected string
+			}{
+				{
+					url:      "/stat",
+					expected: "/stat",
+				},
+				{
+					url:      "/stat/",
+					expected: "/",
+				},
+				{
+					url:      "/status",
+					expected: "/status",
+				},
+				{
+					url:      "/stat/us",
+					expected: "/us",
+				},
+			},
+		},
+		{
+			server: stripServers["/stat"],
+			desc:   "strip /stat matching absolute paths and subpaths",
+			tests: []struct {
+				url      string
+				expected string
+			}{
+				{
+					url:      "/stat",
+					expected: "/",
+				},
+				{
+					url:      "/stat/",
+					expected: "/",
+				},
+				{
+					url:      "/status",
+					expected: "/status",
+				},
+				{
+					url:      "/stat/us",
+					expected: "/us",
+				},
+			},
+		},
+		{
+			server: stripServers["/nomatch"],
+			desc:   "no matching strip rules",
+			tests: []struct {
+				url      string
+				expected string
+			}{
+				{
+					url:      "/anyurl",
+					expected: "/anyurl",
+				},
+			},
+		},
 	}
 
-	for _, test := range tests {
-		resp, err := http.Get(server.URL + test.url)
-		if err != nil {
-			t.Fatal(err)
-		}
+	for _, suite := range suites {
+		suite := suite
+		t.Run(suite.desc, func(t *testing.T) {
+			t.Parallel()
+			defer suite.server.Close()
 
-		if resp.StatusCode != test.expectedCode {
-			t.Errorf("Received non-%d response: %d", test.expectedCode, resp.StatusCode)
-		}
-		response, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
+			for _, test := range suite.tests {
+				resp, err := http.Get(suite.server.URL + test.url)
+				if err != nil {
+					t.Fatalf("Failed to send GET request: %s", err)
+				}
 
-		if test.expectedResponse != string(response) {
-			t.Errorf("Expected '%s' :  '%s'\n", test.expectedResponse, response)
-		}
+				if resp.StatusCode != http.StatusOK {
+					t.Errorf("Received non-200 response: %d", resp.StatusCode)
+				}
+				response, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					t.Fatalf("Failed to read response body: %s", err)
+				}
+
+				if test.expected != string(response) {
+					t.Errorf("Unexpected response received: '%s', expected: '%s'", response, test.expected)
+				}
+			}
+		})
 	}
-
 }

@@ -17,27 +17,23 @@ type StripPrefix struct {
 
 func (s *StripPrefix) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, prefix := range s.Prefixes {
-		orgPrefix := strings.TrimSpace(prefix)
-		if orgPrefix == r.URL.Path {
+		origPrefix := strings.TrimSpace(prefix)
+		if origPrefix == r.URL.Path {
 			r.URL.Path = "/"
-			s.serveRequest(w, r, orgPrefix)
+			s.serveRequest(w, r, origPrefix)
 			return
 		}
 
-		prefix = orgPrefix
-		if !strings.HasSuffix(prefix, "/") {
-			prefix = orgPrefix + "/"
-		}
-
+		prefix = strings.TrimSuffix(origPrefix, "/") + "/"
 		if p := strings.TrimPrefix(r.URL.Path, prefix); len(p) < len(r.URL.Path) {
-			if !strings.HasPrefix(p, "/") {
-				r.URL.Path = "/" + p
-			}
-			s.serveRequest(w, r, orgPrefix)
+			r.URL.Path = "/" + strings.TrimPrefix(p, "/")
+			s.serveRequest(w, r, origPrefix)
 			return
 		}
 	}
-	http.NotFound(w, r)
+
+	r.RequestURI = r.URL.RequestURI()
+	s.Handler.ServeHTTP(w, r)
 }
 
 func (s *StripPrefix) serveRequest(w http.ResponseWriter, r *http.Request, prefix string) {
