@@ -1,8 +1,6 @@
 package middlewares
 
 import (
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,142 +10,94 @@ import (
 )
 
 func TestStripPrefix(t *testing.T) {
-	handlerPath := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, r.URL.Path)
-	})
-
-	stripServers := make(map[string]*httptest.Server)
-	stripServers["/norules"] = httptest.NewServer(&StripPrefix{
-		Prefixes: []string{},
-		Handler:  handlerPath,
-	})
-
-	stripList := []string{
-		"/",
-		"/stat/",
-		"/stat",
-		"/nomatch",
-	}
-	for _, stripPath := range stripList {
-		stripServers[stripPath] = httptest.NewServer(&StripPrefix{
-			Prefixes: []string{stripPath},
-			Handler:  handlerPath,
-		})
-	}
-
-	suites := []stripPrefixTestSuite{
+	tests := []struct {
+		desc               string
+		prefixes           []string
+		path               string
+		expectedStatusCode int
+		expectedPath       string
+	}{
 		{
-			server: stripServers["/norules"],
-			desc:   "no strip rules",
-			tests: []stripPrefixTestCase{
-				{
-					url:                "/norules",
-					expectedStatusCode: http.StatusNotFound,
-				},
-			},
+			desc:               "no prefixes configured",
+			prefixes:           []string{},
+			path:               "/noprefixes",
+			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			server: stripServers["/"],
-			desc:   "strip / to handle wildcard (.*) requests",
-			tests: []stripPrefixTestCase{
-				{
-					url:                "/",
-					expectedStatusCode: http.StatusOK,
-					expectedBody:       "/",
-				},
-			},
+			desc:               "wildcard (.*) requests",
+			prefixes:           []string{"/"},
+			path:               "/",
+			expectedStatusCode: http.StatusOK,
+			expectedPath:       "/",
 		},
 		{
-			server: stripServers["/stat/"],
-			desc:   "strip /stat/ matching only subpaths",
-			tests: []stripPrefixTestCase{
-				{
-					url:                "/stat",
-					expectedStatusCode: http.StatusNotFound,
-				},
-				{
-					url:                "/stat/",
-					expectedStatusCode: http.StatusOK,
-					expectedBody:       "/",
-				},
-				{
-					url:                "/status",
-					expectedStatusCode: http.StatusNotFound,
-				},
-				{
-					url:                "/stat/us",
-					expectedStatusCode: http.StatusOK,
-					expectedBody:       "/us",
-				},
-			},
+			desc:               "prefix and path matching",
+			prefixes:           []string{"/stat"},
+			path:               "/stat",
+			expectedStatusCode: http.StatusOK,
+			expectedPath:       "/",
 		},
 		{
-			server: stripServers["/stat"],
-			desc:   "strip /stat matching absolute paths and subpaths",
-			tests: []stripPrefixTestCase{
-				{
-					url:                "/stat",
-					expectedStatusCode: http.StatusOK,
-					expectedBody:       "/",
-				},
-				{
-					url:                "/stat/",
-					expectedStatusCode: http.StatusOK,
-					expectedBody:       "/",
-				},
-				{
-					url:                "/status",
-					expectedStatusCode: http.StatusNotFound,
-				},
-				{
-					url:                "/stat/us",
-					expectedStatusCode: http.StatusOK,
-					expectedBody:       "/us",
-				},
-			},
+			desc:               "path prefix on exactly matching path",
+			prefixes:           []string{"/stat/"},
+			path:               "/stat/",
+			expectedStatusCode: http.StatusOK,
+			expectedPath:       "/",
 		},
 		{
-			server: stripServers["/nomatch"],
-			desc:   "no matching strip rules",
-			tests: []stripPrefixTestCase{
-				{
-					url:                "/anyurl",
-					expectedStatusCode: http.StatusNotFound,
-				},
-			},
+			desc:               "path prefix on matching longer path",
+			prefixes:           []string{"/stat/"},
+			path:               "/stat/us",
+			expectedStatusCode: http.StatusOK,
+			expectedPath:       "/us",
+		},
+		{
+			desc:               "path prefix on mismatching path",
+			prefixes:           []string{"/stat/"},
+			path:               "/status",
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			desc:               "general prefix on matching path",
+			prefixes:           []string{"/stat"},
+			path:               "/stat/",
+			expectedStatusCode: http.StatusOK,
+			expectedPath:       "/",
+		},
+		{
+			desc:               "earlier prefix matching",
+			prefixes:           []string{"/stat", "/stat/us"},
+			path:               "/stat/us",
+			expectedStatusCode: http.StatusOK,
+			expectedPath:       "/us",
+		},
+		{
+			desc:               "later prefix matching",
+			prefixes:           []string{"/mismatch", "/stat"},
+			path:               "/stat",
+			expectedStatusCode: http.StatusOK,
+			expectedPath:       "/",
 		},
 	}
 
-	for _, suite := range suites {
-		suite := suite
-		t.Run(suite.desc, func(t *testing.T) {
+	for _, test := range tests {
+		test := test
+		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
-			defer suite.server.Close()
+			var gotPath string
+			server := httptest.NewServer(&StripPrefix{
+				Prefixes: test.prefixes,
+				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					gotPath = r.URL.Path
+				}),
+			})
+			defer server.Close()
 
-			for _, test := range suite.tests {
-				resp, err := http.Get(suite.server.URL + test.url)
-				require.NoError(t, err, "Failed to send GET request")
-				assert.Equal(t, test.expectedStatusCode, resp.StatusCode, "Unexpected status code")
+			resp, err := http.Get(server.URL + test.path)
+			require.NoError(t, err, "Failed to send GET request")
+			assert.Equal(t, test.expectedStatusCode, resp.StatusCode, "Unexpected status code")
 
-				if test.expectedBody != "" {
-					response, err := ioutil.ReadAll(resp.Body)
-					require.NoError(t, err, "Failed to read response body")
-
-					assert.Equal(t, test.expectedBody, string(response), "Unexpected response received")
-				}
-			}
+			assert.Equal(t, test.expectedPath, gotPath, "Unexpected path")
 		})
 	}
-}
-
-type stripPrefixTestCase struct {
-	url                string
-	expectedStatusCode int
-	expectedBody       string
-}
-
-type stripPrefixTestSuite struct {
-	server *httptest.Server
-	desc   string
-	tests  []stripPrefixTestCase
 }
