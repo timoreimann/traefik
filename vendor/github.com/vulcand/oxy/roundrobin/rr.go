@@ -38,6 +38,7 @@ func EnableStickySession(ss *StickySession) LBOption {
 
 type RoundRobin struct {
 	mutex      *sync.Mutex
+	debugMutex *sync.Mutex
 	next       http.Handler
 	errHandler utils.ErrorHandler
 	// Current index (starts from -1)
@@ -49,11 +50,12 @@ type RoundRobin struct {
 
 func New(next http.Handler, opts ...LBOption) (*RoundRobin, error) {
 	rr := &RoundRobin{
-		next:    next,
-		index:   -1,
-		mutex:   &sync.Mutex{},
-		servers: []*server{},
-		ss:      nil,
+		next:       next,
+		index:      -1,
+		mutex:      &sync.Mutex{},
+		debugMutex: &sync.Mutex{},
+		servers:    []*server{},
+		ss:         nil,
 	}
 	for _, o := range opts {
 		if err := o(rr); err != nil {
@@ -71,11 +73,17 @@ func (r *RoundRobin) Next() http.Handler {
 }
 
 func (r *RoundRobin) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r.debugMutex.Lock()
+	defer r.debugMutex.Unlock()
+
 	// make shallow copy of request before chaning anything to avoid side effects
 	newReq := *req
 	stuck := false
 	if r.ss != nil {
-		cookie_url, present, err := r.ss.GetBackend(&newReq, r.Servers())
+		fmt.Println("ServeHTTP: Sticky processing triggered")
+		srvs := r.Servers()
+		fmt.Printf("Getting backend for request URL %s (current number of servers: %d)\n", newReq.URL.String(), len(srvs))
+		cookie_url, present, err := r.ss.GetBackend(&newReq, srvs)
 
 		if err != nil {
 			r.errHandler.ServeHTTP(w, req, err)
@@ -83,8 +91,11 @@ func (r *RoundRobin) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if present {
+			fmt.Printf("Cookie is present, URL is: %s\n", cookie_url)
 			newReq.URL = cookie_url
 			stuck = true
+		} else {
+			fmt.Println("cookie is NOT present.")
 		}
 	}
 
@@ -96,14 +107,17 @@ func (r *RoundRobin) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if r.ss != nil {
+			fmt.Printf("Sticking backend %s to response\n", url.String())
 			r.ss.StickBackend(url, &w)
 		}
 		newReq.URL = url
 	}
+	fmt.Printf("Serving follow-up HTTP request in chain with request URL %s\n", newReq.URL.String())
 	r.next.ServeHTTP(w, &newReq)
 }
 
 func (r *RoundRobin) NextServer() (*url.URL, error) {
+	fmt.Println("Getting next server")
 	srv, err := r.nextServer()
 	if err != nil {
 		return nil, err
@@ -149,6 +163,7 @@ func (r *RoundRobin) nextServer() (*server, error) {
 }
 
 func (r *RoundRobin) RemoveServer(u *url.URL) error {
+	fmt.Printf("Removing server URL %s from pool\n", u.String())
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -169,6 +184,7 @@ func (rr *RoundRobin) Servers() []*url.URL {
 	for i, srv := range rr.servers {
 		out[i] = srv.url
 	}
+	fmt.Printf("Returning %d servers.\n", len(out))
 	return out
 }
 
@@ -184,6 +200,7 @@ func (rr *RoundRobin) ServerWeight(u *url.URL) (int, bool) {
 
 // In case if server is already present in the load balancer, returns error
 func (rr *RoundRobin) UpsertServer(u *url.URL, options ...ServerOption) error {
+	fmt.Printf("Upserting server %s\n", u.String())
 	rr.mutex.Lock()
 	defer rr.mutex.Unlock()
 
@@ -191,7 +208,9 @@ func (rr *RoundRobin) UpsertServer(u *url.URL, options ...ServerOption) error {
 		return fmt.Errorf("server URL can't be nil")
 	}
 
+	fmt.Printf("Trying to find server by URL %s\n", u.String())
 	if s, _ := rr.findServerByURL(u); s != nil {
+		fmt.Printf("Found server by URL %s\n", u.String())
 		for _, o := range options {
 			if err := o(s); err != nil {
 				return err
@@ -201,6 +220,7 @@ func (rr *RoundRobin) UpsertServer(u *url.URL, options ...ServerOption) error {
 		return nil
 	}
 
+	fmt.Printf("Server URL %s not found -- Copying from URL\n", u.String())
 	srv := &server{url: utils.CopyURL(u)}
 	for _, o := range options {
 		if err := o(srv); err != nil {
@@ -212,6 +232,7 @@ func (rr *RoundRobin) UpsertServer(u *url.URL, options ...ServerOption) error {
 		srv.weight = defaultWeight
 	}
 
+	fmt.Printf("Inserting upserted server URL %s\n", srv.url.String())
 	rr.servers = append(rr.servers, srv)
 	rr.resetState()
 	return nil
@@ -227,14 +248,17 @@ func (r *RoundRobin) resetState() {
 }
 
 func (r *RoundRobin) findServerByURL(u *url.URL) (*server, int) {
+	fmt.Printf("Searching for server by URL %s in %d servers\n", u.String(), len(r.servers))
 	if len(r.servers) == 0 {
 		return nil, -1
 	}
 	for i, s := range r.servers {
 		if sameURL(u, s.url) {
+			fmt.Printf("Found server by URL %s\n", u.String())
 			return s, i
 		}
 	}
+	fmt.Printf("Could NOT find server by URL %s\n", u.String())
 	return nil, -1
 }
 
@@ -283,7 +307,9 @@ type server struct {
 const defaultWeight = 1
 
 func sameURL(a, b *url.URL) bool {
-	return a.Path == b.Path && a.Host == b.Host && a.Scheme == b.Scheme
+	res := a.Path == b.Path && a.Host == b.Host && a.Scheme == b.Scheme
+	fmt.Printf("comparing URLs [P:%s H:%s S:%s] and [P:%s H:%s S:%s]: result = %t\n", a.Path, a.Host, a.Scheme, b.Path, b.Host, b.Scheme, res)
+	return res
 }
 
 type balancerHandler interface {
