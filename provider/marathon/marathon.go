@@ -469,25 +469,34 @@ func (p *Provider) hasServices(application marathon.Application) bool {
 func extractServicesLabels(labels *map[string]string) labelServiceProperties {
 	v := make(labelServiceProperties)
 
-	if labels != nil {
-		for label, value := range *labels {
-			matches := servicesPropertiesRegexp.FindStringSubmatch(label)
-			if matches == nil {
-				continue
-			}
+	if labels == nil {
+		return v
+	}
 
-			result := make(map[string]string)
-			for i, name := range servicesPropertiesRegexp.SubexpNames() {
-				if i != 0 {
-					result[name] = matches[i]
-				}
-			}
-			serviceName := result["service_name"]
-			if _, ok := v[serviceName]; !ok {
-				v[serviceName] = make(map[string]string)
-			}
-			v[serviceName][result["property_name"]] = value
+	for label, value := range *labels {
+		tokens := strings.SplitN(label, ".", 3)
+		if len(tokens) < 3 {
+			continue
 		}
+		if tokens[0] != "traefik" {
+			continue
+		}
+
+		serviceName := tokens[1]
+
+		// Check property name prefix.
+		propertyName := tokens[2]
+		switch strings.Split(propertyName, ".")[0] {
+		case "port", "portIndex", "weight", "protocol", "frontend":
+			// No-op: Known property name prefix.
+		default:
+			continue
+		}
+
+		if _, ok := v[serviceName]; !ok {
+			v[serviceName] = make(serviceProperties)
+		}
+		v[serviceName][propertyName] = value
 	}
 
 	return v
