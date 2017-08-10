@@ -3,7 +3,9 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containous/traefik/integration/try"
@@ -100,4 +102,58 @@ func (s *SimpleSuite) TestPrintHelp(c *check.C) {
 		return nil
 	})
 	c.Assert(err, checker.IsNil)
+}
+
+func (s *SimpleSuite) TestReqTermGraceTimeout(c *check.C) {
+	s.createComposeProject(c, "reqtermgrace")
+	s.composeProject.Start(c)
+
+	whoami := "http://" + s.composeProject.Container(c, "whoami").NetworkSettings.IPAddress + ":80"
+
+	file := s.adaptFile(c, "fixtures/reqtermgrace.toml", struct {
+		Server string
+	}{whoami})
+	defer os.Remove(file)
+	cmd, output := s.cmdTraefik(withConfigFile(file))
+	err := cmd.Start()
+	c.Assert(err, checker.IsNil)
+	defer cmd.Process.Kill()
+
+	showTraefikLog := true
+	defer func() {
+		if showTraefikLog {
+			s.displayTraefikLog(c, output)
+		}
+	}()
+
+	// Wait for service to become available through Traefik.
+	err = try.GetRequest("http://127.0.0.1:8000/service", 10*time.Second, try.StatusCodeIs(http.StatusOK))
+	c.Assert(err, checker.IsNil)
+
+	// Send SIGTERM to Traefik.
+	proc, err := os.FindProcess(cmd.Process.Pid)
+	c.Assert(err, checker.IsNil)
+	err = proc.Signal(syscall.SIGTERM)
+	c.Assert(err, checker.IsNil)
+
+	// Wait for signal to have been processed and try to request service
+	// afterwards.
+	time.Sleep(5 * time.Second)
+	resp, err := http.Get("http://127.0.0.1:8000/service")
+	c.Assert(err, checker.IsNil)
+	defer resp.Body.Close()
+	c.Assert(resp.StatusCode, checker.Equals, http.StatusOK)
+
+	// Wait for Traefik to terminate in time.
+	waitErr := make(chan error)
+	go func() {
+		waitErr <- cmd.Wait()
+	}()
+
+	select {
+	case err := <-waitErr:
+		c.Assert(err, checker.IsNil)
+	case <-time.After(15 * time.Second):
+		c.Fatal("Traefik did not terminate in time")
+	}
 }
