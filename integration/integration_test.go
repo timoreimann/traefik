@@ -62,6 +62,7 @@ func init() {
 	}
 	if *host {
 		// tests launched from the host
+		check.Suite(&KubernetesSuite{})
 		check.Suite(&ProxyProtocolSuite{})
 		check.Suite(&Etcd3Suite{})
 	}
