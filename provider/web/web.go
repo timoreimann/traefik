@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/pprof"
 	"runtime"
 
 	"github.com/containous/mux"
@@ -119,9 +120,16 @@ func (provider *Provider) Provide(configurationChan chan<- types.ConfigMessage, 
 	systemRouter.Methods("GET").PathPrefix(provider.Path + "dashboard/").
 		Handler(http.StripPrefix(provider.Path+"dashboard/", http.FileServer(&assetfs.AssetFS{Asset: autogen.Asset, AssetInfo: autogen.AssetInfo, AssetDir: autogen.AssetDir, Prefix: "static"})))
 
-	// expvars
 	if provider.Debug {
+		// expvars
 		systemRouter.Methods("GET").Path(provider.Path + "debug/vars").HandlerFunc(expVarHandler)
+
+		// pprof
+		systemRouter.Methods(http.MethodGet).PathPrefix("/debug/pprof/").HandlerFunc(pprof.Index)
+		systemRouter.Methods(http.MethodGet).PathPrefix("/debug/pprof/cmdline").HandlerFunc(pprof.Cmdline)
+		systemRouter.Methods(http.MethodGet).PathPrefix("/debug/pprof/profile").HandlerFunc(pprof.Profile)
+		systemRouter.Methods(http.MethodGet).PathPrefix("/debug/pprof/symbol").HandlerFunc(pprof.Symbol)
+		systemRouter.Methods(http.MethodGet).PathPrefix("/debug/pprof/trace").HandlerFunc(pprof.Trace)
 	}
 
 	safe.Go(func() {
