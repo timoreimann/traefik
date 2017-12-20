@@ -10,12 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containous/traefik/provider/label"
+
 	"golang.org/x/net/context"
 	"k8s.io/client-go/pkg/util/intstr"
 
 	"github.com/containous/traefik/integration/try"
 	"github.com/containous/traefik/testhelpers"
-	"github.com/containous/traefik/types"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
@@ -174,7 +175,7 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 			ObjectMeta: v1.ObjectMeta{
 				Name: "whoami",
 				Annotations: map[string]string{
-					types.LabelFrontendRuleType: "Path",
+					label.TraefikFrontendRuleType: "Path",
 				},
 			},
 			Spec: v1beta1.IngressSpec{
