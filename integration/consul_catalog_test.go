@@ -54,9 +54,6 @@ func (s *ConsulCatalogSuite) createConsulClient(config *api.Config, c *check.C) 
 	s.consulClient = consulClient
 	return consulClient
 }
-func (s *ConsulCatalogSuite) startConsulService(c *check.C) {
-
-}
 
 func (s *ConsulCatalogSuite) registerService(name string, address string, port int, tags []string) error {
 	catalog := s.consulClient.Catalog()

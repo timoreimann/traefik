@@ -4,16 +4,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/containous/traefik/types"
 	"github.com/docker/libkv/store"
 )
 
 type KvMock struct {
 	Provider
-}
-
-func (provider *KvMock) loadConfig() *types.Configuration {
-	return nil
 }
 
 // Override Get/List to return a error

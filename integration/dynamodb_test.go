@@ -50,8 +50,8 @@ func (s *DynamoDBSuite) SetUpSuite(c *check.C) {
 		if err != nil {
 			return err
 		}
-		sess = session.New(config)
-		return nil
+		sess, err = session.NewSession(config)
+		return err
 	})
 	c.Assert(err, checker.IsNil)
 	svc := dynamodb.New(sess)

@@ -59,7 +59,10 @@ type awsClient struct {
 }
 
 func (p *Provider) createClient() (*awsClient, error) {
-	sess := session.New()
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %s", err)
+	}
 	ec2meta := ec2metadata.New(sess)
 	if p.Region == "" {
 		log.Infoln("No EC2 region provided, querying instance metadata endpoint...")

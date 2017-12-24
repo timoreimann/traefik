@@ -3,6 +3,7 @@ package dynamodb
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -40,9 +41,12 @@ type dynamoClient struct {
 // createClient configures aws credentials and creates a dynamoClient
 func (p *Provider) createClient() (*dynamoClient, error) {
 	log.Info("Creating Provider client...")
-	sess := session.New()
 	if p.Region == "" {
 		return nil, errors.New("no Region provided for Provider")
+	}
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %s", err)
 	}
 	cfg := &aws.Config{
 		Region: &p.Region,

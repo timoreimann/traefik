@@ -15,11 +15,6 @@ import (
 // FIXME fill this test!!
 func TestBuildConfiguration(t *testing.T) {
 	cases := []struct {
-		applicationsError bool
-		tasksError        bool
-		mesosTask         state.Task
-		expected          bool
-		exposedByDefault  bool
 		expectedNil       bool
 		expectedFrontends map[string]*types.Frontend
 		expectedBackends  map[string]*types.Backend

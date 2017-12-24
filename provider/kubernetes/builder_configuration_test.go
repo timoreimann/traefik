@@ -161,16 +161,6 @@ func redirectEntryPoint(name string) func(*types.Frontend) {
 	}
 }
 
-func redirectRegex(regex, replacement string) func(*types.Frontend) {
-	return func(f *types.Frontend) {
-		if f.Redirect == nil {
-			f.Redirect = &types.Redirect{}
-		}
-		f.Redirect.Regex = regex
-		f.Redirect.Replacement = replacement
-	}
-}
-
 func passTLSCert() func(*types.Frontend) {
 	return func(f *types.Frontend) {
 		f.PassTLSCert = true

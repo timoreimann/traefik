@@ -186,7 +186,6 @@ func TestDockerGetFuncMapLabel(t *testing.T) {
 		desc        string
 		container   docker.ContainerJSON
 		suffixLabel string
-		expectedKey string
 		expected    map[string]string
 	}{
 		{

@@ -18,7 +18,7 @@ func TestMetricsRetryListener(t *testing.T) {
 
 	wantCounterValue := float64(2)
 	if retryMetrics.retryCounter.counterValue != wantCounterValue {
-		t.Errorf("got counter value of %d, want %d", retryMetrics.retryCounter.counterValue, wantCounterValue)
+		t.Errorf("got counter value of %f, want %f", retryMetrics.retryCounter.counterValue, wantCounterValue)
 	}
 
 	wantLabelValues := []string{"backend", "backendName"}
