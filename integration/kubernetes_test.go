@@ -61,12 +61,12 @@ type KubernetesSuite struct {
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	// TODO: Check/install requirements (minikube, kubectl)
 
-	cmd := exec.Command("minikube", "status")
+	cmd := exec.Command("minikube", "status", "--format='{{.MinikubeStatus}}'")
 	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()
 	c.Assert(err, checker.IsNil)
 	status := string(out)
-	if !strings.Contains(strings.ToLower(status), "minikube: running") {
+	if status != "running" {
 		// Start minikube.
 		// TODO: use driver=none on CI
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
