@@ -35,7 +35,7 @@ const (
 )
 
 var (
-	minikubeArgs = []string{
+	minikubeStartArgs = []string{
 		"--logtostderr",
 		fmt.Sprintf("--kubernetes-version=%s", kubernetesVersion),
 		"--extra-config=apiserver.Authorization.Mode=RBAC",
@@ -70,7 +70,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		// TODO: use driver=none on CI
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
 		defer cancel()
-		args := append([]string{"start"}, minikubeArgs...)
+		args := append([]string{"start"}, minikubeStartArgs...)
 		cmd := exec.CommandContext(ctx, "minikube", args...)
 		cmd.Env = append(os.Environ(), minikubeEnvVars...)
 		cmd.Stdout = os.Stdout
