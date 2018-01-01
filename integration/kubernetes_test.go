@@ -59,7 +59,7 @@ type KubernetesSuite struct {
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
-	// TODO: Check requirements (minikube)
+	// TODO: Check/install requirements (minikube, kubectl)
 
 	cmd := exec.Command("minikube", "status")
 	cmd.Stderr = os.Stderr
@@ -92,10 +92,8 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		Host:   fmt.Sprintf("%s:8443", s.nodeHost),
 	}
 
-	// TODO: Isolate kubectl environment (binary + KUBECONFIG env var)
-	kubeconfigPath := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
+		clientcmd.NewDefaultClientConfigLoadingRules(),
 		&clientcmd.ConfigOverrides{
 			Context: clientcmdapi.Context{
 				Cluster:   minikubeContext,
