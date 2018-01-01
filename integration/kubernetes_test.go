@@ -44,7 +44,7 @@ var (
 	minikubeEnvVars = []string{
 		"MINIKUBE_WANTUPDATENOTIFICATION=false",
 		"MINIKUBE_WANTREPORTERRORPROMPT=false",
-		"MINIKUBE_PROFILE_NAME=traefik-integration-test",
+		"MINIKUBE_PROFILE=traefik-integration-test",
 		// TODO: Enable if we are on the CI
 		// "CHANGE_MINIKUBE_NONE_USER=false",
 	}
