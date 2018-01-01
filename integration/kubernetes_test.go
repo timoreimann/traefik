@@ -70,6 +70,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	if status != "running" {
 		// Start minikube.
 		// TODO: use driver=none on CI
+		// TODO: stop after usage
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
 		defer cancel()
 		args := append([]string{"start"}, minikubeStartArgs...)
