@@ -29,6 +29,7 @@ import (
 )
 
 const (
+	minikubeContext           = "traefik-integration-test"
 	kubernetesVersion         = "v1.8.0"
 	minikubeStartupTimeout    = 90 * time.Second
 	examplesRelativeDirectory = "../examples/k8s"
@@ -44,7 +45,7 @@ var (
 	minikubeEnvVars = []string{
 		"MINIKUBE_WANTUPDATENOTIFICATION=false",
 		"MINIKUBE_WANTREPORTERRORPROMPT=false",
-		"MINIKUBE_PROFILE=traefik-integration-test",
+		fmt.Sprintf("MINIKUBE_PROFILE=%s", minikubeContext),
 		// TODO: Enable if we are on the CI
 		// "CHANGE_MINIKUBE_NONE_USER=false",
 	}
@@ -97,7 +98,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
 		&clientcmd.ConfigOverrides{
 			Context: clientcmdapi.Context{
-				Cluster:   "minikube",
+				Cluster:   minikubeContext,
 				Namespace: "kube-system", // api.NamespaceDefault,
 			},
 		},
