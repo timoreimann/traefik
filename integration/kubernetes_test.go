@@ -40,6 +40,7 @@ var (
 		"--logtostderr",
 		fmt.Sprintf("--kubernetes-version=%s", kubernetesVersion),
 		"--extra-config=apiserver.Authorization.Mode=RBAC",
+		"--keep-context",
 	}
 
 	minikubeEnvVars = []string{
