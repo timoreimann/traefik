@@ -255,7 +255,15 @@ func applyExampleManifest(names ...string) error {
 
 	for _, name := range names {
 		manifest := filepath.Join(cwd, examplesRelativeDirectory, name)
-		cmd := exec.Command("kubectl", "apply", "--namespace", "kube-system", "--filename", manifest)
+		cmd := exec.Command(
+			"kubectl",
+			"apply",
+			"--context",
+			minikubeProfile,
+			"--namespace",
+			"kube-system",
+			"--filename",
+			manifest)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
