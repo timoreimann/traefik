@@ -142,10 +142,10 @@ kube-test-deps:
 		exit 1; \
 	fi
 
-	curl -vsSfLo /usr/local/bin/minikube https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
+	curl -sSfLo /usr/local/bin/minikube https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
 	chmod +x /usr/local/bin/minikube
 
-	curl -vsSfLo /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(KUBE_VERSION)/bin/linux/amd64/kubectl
+	curl -sSfLo /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(KUBE_VERSION)/bin/linux/amd64/kubectl
 	chmod +x /usr/local/bin/kubectl
 
 help: ## this help
