@@ -47,8 +47,6 @@ var (
 		"MINIKUBE_WANTUPDATENOTIFICATION=false",
 		"MINIKUBE_WANTREPORTERRORPROMPT=false",
 		fmt.Sprintf("MINIKUBE_PROFILE=%s", minikubeProfile),
-		// TODO: Enable if we are on the CI
-		// "CHANGE_MINIKUBE_NONE_USER=false",
 	}
 )
 
@@ -60,9 +58,20 @@ type KubernetesSuite struct {
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
-	// TODO: Check/install requirements (minikube, kubectl)
+	cmd := exec.Command("minikube", "version")
+	err := cmd.Run()
+	c.Assert(err, checker.IsNil, check.Commentf("minikube must be installed"))
 
-	cmd := exec.Command("minikube", "status")
+	cmd = exec.Command("kubectl", "version")
+	err = cmd.Run()
+	c.Assert(err, checker.IsNil, check.Commentf("kubectl must be installed"))
+
+	if os.Getenv("ON_CI") != "" {
+		minikubeStartArgs = append(minikubeStartArgs, "--vm-driver=none")
+		minikubeEnvVars = append(minikubeEnvVars, "CHANGE_MINIKUBE_NONE_USER=true")
+	}
+
+	cmd = exec.Command("minikube", "status")
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
 	if err := cmd.Run(); err != nil {
@@ -70,7 +79,6 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		c.Assert(ok, checker.True, check.Commentf("\"minikube status\" failed: %s", err))
 
 		// Start minikube.
-		// TODO: use driver=none on CI
 		// TODO: stop after usage
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
 		defer cancel()
@@ -264,6 +272,8 @@ func applyExampleManifest(names ...string) error {
 			return fmt.Errorf("failed to apply manifest %s: %s", manifest, err)
 		}
 	}
+
+	// TODO: cleanup manifests after test end for follow-up tests.
 
 	return nil
 }
