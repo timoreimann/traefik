@@ -121,7 +121,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	baseTraefikURL := fmt.Sprintf("http://%s/", s.nodeHost)
-	err = try.GetRequest(baseTraefikURL, 10*time.Second, try.StatusCodeIs(http.StatusNotFound))
+	err = try.GetRequest(baseTraefikURL, 45*time.Second, try.StatusCodeIs(http.StatusNotFound))
 	c.Assert(err, checker.IsNil, check.Commentf("traefik access"))
 
 	// Validate Traefik UI is reachable.
@@ -147,7 +147,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	for _, svc := range []string{"stilton", "cheddar", "wensleydale"} {
 		host := svc + ".minikube"
 		req.Host = host
-		err = try.Request(req, 10*time.Second, try.StatusCodeIs(http.StatusOK))
+		err = try.Request(req, 25*time.Second, try.StatusCodeIs(http.StatusOK))
 		c.Assert(err, checker.IsNil, check.Commentf("service %q access", svc))
 	}
 }
