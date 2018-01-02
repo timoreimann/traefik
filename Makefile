@@ -137,6 +137,7 @@ prune-dep:
 	./script/prune-dep.sh
 
 kube-test-deps:
+	@echo "path is: $$PATH"
 	@if [ $(shell uname) != "Linux" ]; then \
 		echo "Kubernetes dependencies can only be installed on Linux"; \
 		exit 1; \
