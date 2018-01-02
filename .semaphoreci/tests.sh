@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
 set -e
 
-make test-unit
-ci_retry ON_CI=true make test-integration
-make -j${N_MAKE_JOBS} crossbinary-default-parallel
+ON_CI=true TEST_HOST=1 TESTFLAGS='-check.f KubernetesSuite.TestManifestExamples' make test-integration
