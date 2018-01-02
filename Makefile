@@ -16,7 +16,12 @@ SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
 BIND_DIR := "dist"
 TRAEFIK_MOUNT := -v "$(CURDIR):/go/src/github.com/containous/traefik"
 
-GIT_BRANCH := $(subst heads/,,$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null))
+MINIKUBE_VERSION_DEFAULT := v0.24.1
+MINIKUBE_VERSION := $(if $(MINIKUBE_VERSION),$(MINIKUBE_VERSION),$(MINIKUBE_VERSION_DEFAULT))
+
+KUBE_VERSION_DEFAULT := v1.8.0
+KUBE_VERSION := $(if $(KUBE_VERSION),$(KUBE_VERSION),$(KUBE_VERSION_DEFAULT))
+
 TRAEFIK_DEV_IMAGE := traefik-dev$(if $(GIT_BRANCH),:$(subst /,-,$(GIT_BRANCH)))
 REPONAME := $(shell echo $(REPO) | tr '[:upper:]' '[:lower:]')
 TRAEFIK_IMAGE := $(if $(REPONAME),$(REPONAME),"containous/traefik")
@@ -133,6 +138,18 @@ dep-ensure:
 
 dep-prune:
 	./script/prune-dep.sh
+
+kube-test-deps:
+	@if [ $(shell uname) != "Linux" ]; then \
+		echo "Kubernetes dependencies can only be installed on Linux"; \
+		exit 1; \
+	fi
+
+	curl -sSfLo /usr/local/bin/minikube https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
+	chmod +x /usr/local/bin/minikube
+
+	curl -sSfLo /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(KUBE_VERSION)/bin/linux/amd64/kubectl
+	chmod +x /usr/local/bin/kubectl
 
 help: ## this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)

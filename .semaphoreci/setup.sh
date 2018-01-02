@@ -8,4 +8,5 @@ docker version
 pip install --user -r requirements.txt
 
 make pull-images
+make kube-test-deps
 ci_retry make validate
