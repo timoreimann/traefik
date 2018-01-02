@@ -143,18 +143,21 @@ kube-test-deps:
 	@echo "path is: $$PATH"
 	@echo "cwd is: $$PWD"
 	@echo "HOME is: $$HOME"
-	@if [ $(shell uname) != "Linux" ]; then \
-		echo "Kubernetes dependencies can only be installed on Linux"; \
-		exit 1; \
-	fi
 
-	curl -sSfLo minikube https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
-	chmod +x minikube
-	mv minikube /usr/local/bin/
+	./script/get-kube-test-deps $(MINIKUBE_VERSION) $(KUBE_VERSION)
 
-	curl -sSfLO https://storage.googleapis.com/kubernetes-release/release/$(KUBE_VERSION)/bin/linux/amd64/kubectl
-	chmod +x kubectl
-	mv kubectl /usr/local/bin/
+	# @if [ $(shell uname) != "Linux" ]; then \
+	# 	echo "Kubernetes dependencies can only be installed on Linux"; \
+	# 	exit 1; \
+	# fi
+
+	# curl -sSfLo minikube https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
+	# chmod +x minikube
+	# mv minikube /usr/local/bin/
+
+	# curl -sSfLO https://storage.googleapis.com/kubernetes-release/release/$(KUBE_VERSION)/bin/linux/amd64/kubectl
+	# chmod +x kubectl
+	# mv kubectl /usr/local/bin/
 
 help: ## this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
