@@ -141,6 +141,7 @@ dep-prune:
 
 kube-test-deps:
 	@echo "path is: $$PATH"
+	@echo "cwd is: $$PWD"
 	@if [ $(shell uname) != "Linux" ]; then \
 		echo "Kubernetes dependencies can only be installed on Linux"; \
 		exit 1; \
