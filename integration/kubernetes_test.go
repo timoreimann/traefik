@@ -62,12 +62,13 @@ type KubernetesSuite struct {
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	// TODO: Check/install requirements (minikube, kubectl)
 
-	cmd := exec.Command("minikube", "status", "--format='{{.MinikubeStatus}}'")
+	cmd := exec.Command("minikube", "status")
 	cmd.Stderr = os.Stderr
-	out, err := cmd.Output()
-	c.Assert(err, checker.IsNil)
-	status := string(out)
-	if status != "running" {
+	cmd.Env = append(os.Environ(), minikubeEnvVars...)
+	if err := cmd.Run(); err != nil {
+		_, ok := err.(*exec.ExitError)
+		c.Assert(ok, checker.True, check.Commentf("\"minikube status\" failed: %s", err))
+
 		// Start minikube.
 		// TODO: use driver=none on CI
 		// TODO: stop after usage
@@ -83,9 +84,9 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	}
 
 	cmd = exec.Command("minikube", "ip")
-	cmd.Env = append(os.Environ(), minikubeEnvVars...)
 	cmd.Stderr = os.Stderr
-	out, err = cmd.Output()
+	cmd.Env = append(os.Environ(), minikubeEnvVars...)
+	out, err := cmd.Output()
 	c.Assert(err, checker.IsNil)
 
 	s.nodeHost = strings.TrimSpace(string(out))
