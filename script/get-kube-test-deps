@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+set -o nounset
+
+if [[ $# -ne 2 ]]; then
+  echo "usage: $(basename "$0") <minikube version> <kubectl version>" >&2
+  exit 1
+fi
+
+readonly MINIKUBE_VERSION="$1"
+readonly KUBE_VERSION="$2"
+
+if [[ "${OSTYPE}" != "linux-gnu" ]]; then \
+  echo "Kubernetes dependencies can only be installed on Linux" >&2
+  exit 1
+fi
+
+curl -sSfLo minikube "https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64"
+chmod +x minikube
+mv minikube "${HOME}/workspace/bin/"
+
+curl -sSfLO "https://storage.googleapis.com/kubernetes-release/release/${KUBE_VERSION}/bin/linux/amd64/kubectl"
+chmod +x kubectl
+mv kubectl "${HOME}/workspace/bin/"
