@@ -142,11 +142,13 @@ kube-test-deps:
 		exit 1; \
 	fi
 
-	curl -sSfLo /usr/local/bin/minikube https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
-	chmod +x /usr/local/bin/minikube
+	curl -sSfLo minikube https://storage.googleapis.com/minikube/releases/$(MINIKUBE_VERSION)/minikube-linux-amd64
+	chmod +x minikube
+	mv minikube /usr/local/bin/
 
-	curl -sSfLo /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(KUBE_VERSION)/bin/linux/amd64/kubectl
-	chmod +x /usr/local/bin/kubectl
+	curl -sSfLO https://storage.googleapis.com/kubernetes-release/release/$(KUBE_VERSION)/bin/linux/amd64/kubectl
+	chmod +x kubectl
+	mv kubectl /usr/local/bin/
 
 help: ## this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
