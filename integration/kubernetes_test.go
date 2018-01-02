@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/containous/traefik/provider/label"
@@ -56,7 +55,7 @@ type KubernetesSuite struct {
 	BaseSuite
 	client   *kubernetes.Clientset
 	nodeHost string
-	master   url.URL
+	master   *url.URL
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
@@ -83,18 +82,6 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		c.Assert(err, checker.IsNil)
 	}
 
-	cmd = exec.Command("minikube", "ip")
-	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), minikubeEnvVars...)
-	out, err := cmd.Output()
-	c.Assert(err, checker.IsNil)
-
-	s.nodeHost = strings.TrimSpace(string(out))
-	s.master = url.URL{
-		Scheme: "https",
-		Host:   fmt.Sprintf("%s:8443", s.nodeHost),
-	}
-
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		clientcmd.NewDefaultClientConfigLoadingRules(),
 		&clientcmd.ConfigOverrides{
@@ -109,6 +96,11 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	client, err := kubernetes.NewForConfig(config)
 	c.Assert(err, checker.IsNil)
 
+	master, err := url.Parse(config.Host)
+	c.Assert(err, checker.IsNil)
+
+	s.nodeHost = master.Hostname()
+	s.master = master
 	s.client = client
 }
 
