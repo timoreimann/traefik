@@ -202,7 +202,6 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 			break
 		}
 	}
-	fmt.Printf("found node port %d\n", nodePort)
 	c.Assert(nodePort, checker.GreaterThan, int32(0), check.Commentf("failed to find NodePort matching port 80"))
 
 	baseTraefikURL := fmt.Sprintf("http://%s:%d/", s.nodeHost, nodePort)
