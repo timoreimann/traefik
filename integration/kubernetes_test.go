@@ -66,7 +66,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	err = cmd.Run()
 	c.Assert(err, checker.IsNil, check.Commentf("kubectl must be installed"))
 
-	if os.Getenv("ON_CI") != "" {
+	if os.Getenv("CI") != "" {
 		minikubeStartArgs = append(minikubeStartArgs, "--vm-driver=none")
 		minikubeEnvVars = append(minikubeEnvVars, "CHANGE_MINIKUBE_NONE_USER=true")
 	}
