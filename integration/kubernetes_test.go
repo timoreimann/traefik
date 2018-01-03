@@ -69,7 +69,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		minikubeStartArgs = append(minikubeStartArgs, "--vm-driver=none")
 		minikubeEnvVars = append(minikubeEnvVars, "CHANGE_MINIKUBE_NONE_USER=true")
 		minikubeInitCmd = "sudo"
-		minikubeStartArgs = append([]string{"minikube"}, minikubeStartArgs...)
+		minikubeStartArgs = append([]string{"--preserve-env", "minikube"}, minikubeStartArgs...)
 	}
 
 	cmd := exec.Command("minikube", "status")
