@@ -58,6 +58,59 @@ type KubernetesSuite struct {
 	master   *url.URL
 }
 
+type kubeManifests []string
+
+func (km *kubeManifests) Apply(names ...string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %s", err)
+	}
+
+	for _, name := range names {
+		manifest := filepath.Join(cwd, examplesRelativeDirectory, name)
+		cmd := exec.Command(
+			"kubectl",
+			"--context",
+			minikubeProfile,
+			"--namespace",
+			"kube-system",
+			"apply",
+			"--filename",
+			manifest)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to apply manifest %s: %s", manifest, err)
+		}
+
+		*km = append(*km, manifest)
+	}
+
+	return nil
+}
+
+func (km *kubeManifests) DeleteApplied() error {
+	for _, manifest := range *km {
+		cmd := exec.Command(
+			"kubectl",
+			"--context",
+			minikubeProfile,
+			"--namespace",
+			"kube-system",
+			"delete",
+			"--grace-period=5",
+			"--filename",
+			manifest)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to delete manifest %s: %s", manifest, err)
+		}
+	}
+
+	return nil
+}
+
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	_, err := exec.LookPath("minikube")
 	c.Assert(err, checker.IsNil, check.Commentf("minikube must be installed"))
@@ -126,8 +179,14 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 }
 
 func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
+	manifests := kubeManifests{}
+	defer func() {
+		err := manifests.DeleteApplied()
+		c.Assert(err, checker.IsNil)
+	}()
+
 	// Validate Traefik is reachable.
-	err := applyExampleManifest(
+	err := manifests.Apply(
 		"traefik-rbac.yaml",
 		"traefik-deployment.yaml",
 	)
@@ -151,7 +210,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	c.Assert(err, checker.IsNil, check.Commentf("traefik access"))
 
 	// Validate Traefik UI is reachable.
-	err = applyExampleManifest(
+	err = manifests.Apply(
 		"ui.yaml",
 	)
 	c.Assert(err, checker.IsNil)
@@ -162,7 +221,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	c.Assert(err, checker.IsNil, check.Commentf("traefik UI access (req: %s)", *req))
 
 	// Validate third-party service is routable through Traefik.
-	err = applyExampleManifest(
+	err = manifests.Apply(
 		"cheese-deployments.yaml",
 		"cheese-services.yaml",
 		"cheese-ingress.yaml",
@@ -272,33 +331,4 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 	// Query application via Traefik.
 	err = try.GetRequest("http://127.0.0.1:8000/service", 45*time.Second, try.StatusCodeIs(http.StatusOK))
 	c.Assert(err, checker.IsNil)
-}
-
-func applyExampleManifest(names ...string) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %s", err)
-	}
-
-	for _, name := range names {
-		manifest := filepath.Join(cwd, examplesRelativeDirectory, name)
-		cmd := exec.Command(
-			"kubectl",
-			"apply",
-			"--context",
-			minikubeProfile,
-			"--namespace",
-			"kube-system",
-			"--filename",
-			manifest)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("failed to apply manifest %s: %s", manifest, err)
-		}
-	}
-
-	// TODO: cleanup manifests after test end for follow-up tests.
-
-	return nil
 }
