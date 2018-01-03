@@ -129,11 +129,24 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	// Validate Traefik is reachable.
 	err := applyExampleManifest(
 		"traefik-rbac.yaml",
-		"traefik-ds.yaml",
+		"traefik-deployment.yaml",
 	)
 	c.Assert(err, checker.IsNil)
 
-	baseTraefikURL := fmt.Sprintf("http://%s/", s.nodeHost)
+	// Get the service NodePort.
+	svc, err := s.client.Services("kube-system").Get("traefik-ingress-service")
+	c.Assert(err, checker.IsNil)
+	var nodePort int32
+	for _, port := range svc.Spec.Ports {
+		if port.Port == 80 {
+			nodePort = port.NodePort
+			break
+		}
+	}
+	fmt.Printf("found node port %d\n", nodePort)
+	c.Assert(nodePort, checker.GreaterThan, int32(0), check.Commentf("failed to find NodePort matching port 80"))
+
+	baseTraefikURL := fmt.Sprintf("http://%s:%d/", s.nodeHost, nodePort)
 	err = try.GetRequest(baseTraefikURL, 45*time.Second, try.StatusCodeIs(http.StatusNotFound))
 	c.Assert(err, checker.IsNil, check.Commentf("traefik access"))
 
