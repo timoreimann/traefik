@@ -58,12 +58,9 @@ type KubernetesSuite struct {
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
-	cmd := exec.Command("minikube", "version")
-	err := cmd.Run()
+	_, err := exec.LookPath("minikube")
 	c.Assert(err, checker.IsNil, check.Commentf("minikube must be installed"))
-
-	cmd = exec.Command("kubectl", "version")
-	err = cmd.Run()
+	_, err = exec.LookPath("kubectl")
 	c.Assert(err, checker.IsNil, check.Commentf("kubectl must be installed"))
 
 	if os.Getenv("CI") != "" {
@@ -71,7 +68,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		minikubeEnvVars = append(minikubeEnvVars, "CHANGE_MINIKUBE_NONE_USER=true")
 	}
 
-	cmd = exec.Command("minikube", "status")
+	cmd := exec.Command("minikube", "status")
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
 	if err := cmd.Run(); err != nil {
