@@ -148,9 +148,9 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		clientcmd.NewDefaultClientConfigLoadingRules(),
 		&clientcmd.ConfigOverrides{
+			CurrentContext: minikubeProfile,
 			Context: clientcmdapi.Context{
-				Cluster:   minikubeProfile,
-				Namespace: "kube-system", // api.NamespaceDefault,
+				Namespace: "kube-system",
 			},
 		},
 	).ClientConfig()
