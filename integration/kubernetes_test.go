@@ -112,6 +112,17 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	s.nodeHost = master.Hostname()
 	s.master = master
 	s.client = client
+
+	// Wait for cluster to become ready.
+	err = try.Do(1*time.Minute, func() error {
+		cmd := exec.Command(
+			"kubectl",
+			"--context",
+			minikubeProfile,
+			"api-versions")
+		return cmd.Run()
+	})
+	c.Assert(err, checker.IsNil)
 }
 
 func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
