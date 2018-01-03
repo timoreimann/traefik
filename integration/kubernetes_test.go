@@ -36,6 +36,7 @@ const (
 
 var (
 	minikubeStartArgs = []string{
+		"start",
 		"--logtostderr",
 		fmt.Sprintf("--kubernetes-version=%s", kubernetesVersion),
 		"--extra-config=apiserver.Authorization.Mode=RBAC",
@@ -63,9 +64,12 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	_, err = exec.LookPath("kubectl")
 	c.Assert(err, checker.IsNil, check.Commentf("kubectl must be installed"))
 
+	minikubeInitCmd := "minikube"
 	if os.Getenv("CI") != "" {
 		minikubeStartArgs = append(minikubeStartArgs, "--vm-driver=none")
 		minikubeEnvVars = append(minikubeEnvVars, "CHANGE_MINIKUBE_NONE_USER=true")
+		minikubeInitCmd = "sudo"
+		minikubeStartArgs = append([]string{"minikube"}, minikubeStartArgs...)
 	}
 
 	cmd := exec.Command("minikube", "status")
@@ -79,8 +83,8 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		// TODO: stop after usage
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
 		defer cancel()
-		args := append([]string{"start"}, minikubeStartArgs...)
-		cmd := exec.CommandContext(ctx, "minikube", args...)
+
+		cmd := exec.CommandContext(ctx, minikubeInitCmd, minikubeStartArgs...)
 		cmd.Env = append(os.Environ(), minikubeEnvVars...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
