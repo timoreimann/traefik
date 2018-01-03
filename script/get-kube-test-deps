@@ -17,6 +17,7 @@ update_binary() {
 
   # Download binary if it's not cached yet.
   if [[ ! -e "${cache_path}" ]]; then
+    echo "Downloading binary ${name} in version ${version}"
     curl -sSfLo "${tmp_path}" "${url}"
     chmod +x "${tmp_path}"
     mv "${tmp_path}" "${cache_path}"
@@ -26,6 +27,7 @@ update_binary() {
 
   # Return if the symbolic link already points at the binary.
   if [[ "${cache_path}" -ef "${link_path}" ]]; then
+    echo "Skipping link update of ${link_path}: already pointing at ${cache_path}"
     return
   fi
 
@@ -36,6 +38,7 @@ update_binary() {
   fi
   readonly sudo_cmd
 
+  echo "Linking ${link_path} to ${cache_path}"
   ${sudo_cmd} ln --force --symbolic "${cache_path}" "${link_path}"
 }
 
