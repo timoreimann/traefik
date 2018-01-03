@@ -3,23 +3,66 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+readonly DEST_DIR=/usr/local/bin
+readonly CACHE_DIR="${SEMAPHORE_CACHE_DIR}/kubernetes"
+
+update_binary() {
+  local -r tmp_dir="$1"
+  local -r name="$2"
+  local -r version="$3"
+  local -r url="$4"
+
+  local -r tmp_path="${tmp_dir}/${name}.${version}"
+  local -r cache_path="${CACHE_DIR}/${name}.${version}"
+
+  # Download binary if it's not cached yet.
+  if [[ ! -e "${cache_path}" ]]; then
+    curl -sSfLo "${tmp_path}" "${url}"
+    chmod +x "${tmp_path}"
+    mv "${tmp_path}" "${cache_path}"
+  fi
+
+  local -r link_path="${DEST_DIR}/${name}"
+
+  # Return if the symbolic link already points at the binary.
+  if [[ "${cache_path}" -ef "${link_path}" ]]; then
+    return
+  fi
+
+  # Create/update symbolic link.
+  local sudo_cmd=
+  if [[ $(id --user) -ne 0 ]]; then
+    sudo_cmd=sudo
+  fi
+  readonly sudo_cmd
+
+  ${sudo_cmd} ln --force --symbolic "${cache_path}" "${link_path}"
+}
+
+main() {
+  if [[ "${OSTYPE}" != "linux-gnu" ]]; then \
+    echo "Kubernetes dependencies can only be installed on Linux" >&2
+    exit 1
+  fi
+
+  if [[ ! -d "${CACHE_DIR}" ]]; then
+    mkdir -p "${CACHE_DIR}"
+  fi
+
+  local tmp_dir
+  tmp_dir=$(mktemp --directory traefik-k8s-test-deps.XXXXXXXXXX)
+  readonly tmp_dir
+  trap "rm -r ${tmp_dir}" EXIT
+
+  update_binary "${tmp_dir}" minikube "${MINIKUBE_VERSION}" "https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64"
+  update_binary "${tmp_dir}" kubectl "${KUBE_VERSION}" "https://storage.googleapis.com/kubernetes-release/release/${KUBE_VERSION}/bin/linux/amd64/kubectl"
+}
+
 if [[ $# -ne 2 ]]; then
   echo "usage: $(basename "$0") <minikube version> <kubectl version>" >&2
   exit 1
 fi
-
 readonly MINIKUBE_VERSION="$1"
 readonly KUBE_VERSION="$2"
 
-if [[ "${OSTYPE}" != "linux-gnu" ]]; then \
-  echo "Kubernetes dependencies can only be installed on Linux" >&2
-  exit 1
-fi
-
-curl -sSfLo minikube "https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64"
-chmod +x minikube
-mv minikube /usr/local/bin/
-
-curl -sSfLO "https://storage.googleapis.com/kubernetes-release/release/${KUBE_VERSION}/bin/linux/amd64/kubectl"
-chmod +x kubectl
-mv kubectl /usr/local/bin/
+main "$@"
