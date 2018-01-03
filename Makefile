@@ -47,6 +47,9 @@ all: generate-webui build ## validate all checks, build linux binary, run all te
 binary: generate-webui build ## build the linux binary
 	$(DOCKER_RUN_TRAEFIK) ./script/make.sh generate binary
 
+binary-only: build ## build the linux binary only (no web)
+	$(DOCKER_RUN_TRAEFIK) ./script/make.sh generate binary
+
 crossbinary: generate-webui build ## cross build the non-linux binaries
 	$(DOCKER_RUN_TRAEFIK) ./script/make.sh generate crossbinary
 
