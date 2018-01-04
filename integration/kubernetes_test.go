@@ -118,11 +118,15 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	c.Assert(err, checker.IsNil, check.Commentf("kubectl must be installed"))
 
 	minikubeInitCmd := "minikube"
+	// Configure minikube if we run on the CI system.
 	if os.Getenv("CI") != "" {
+		// Bootstrap Kubernetes natively on the host system.
 		minikubeStartArgs = append(minikubeStartArgs, "--vm-driver=none")
-		minikubeEnvVars = append(minikubeEnvVars, "CHANGE_MINIKUBE_NONE_USER=true")
+		// Native Kubernetes requires root privileges.
 		minikubeInitCmd = "sudo"
 		minikubeStartArgs = append([]string{"--preserve-env", "minikube"}, minikubeStartArgs...)
+		// Make sure root-owned files are moved to the proper location.
+		minikubeEnvVars = append(minikubeEnvVars, "CHANGE_MINIKUBE_NONE_USER=true")
 	}
 
 	cmd := exec.Command("minikube", "status")
