@@ -30,6 +30,7 @@ import (
 
 const (
 	minikubeProfile           = "traefik-integration-test"
+	traefikNamespace          = "kube-system"
 	kubernetesVersion         = "v1.8.0"
 	minikubeStartupTimeout    = 90 * time.Second
 	examplesRelativeDirectory = "../examples/k8s"
@@ -74,7 +75,7 @@ func (km *kubeManifests) Apply(names ...string) error {
 			"--context",
 			minikubeProfile,
 			"--namespace",
-			"kube-system",
+			traefikNamespace,
 			"apply",
 			"--filename",
 			manifest)
@@ -97,7 +98,7 @@ func (km *kubeManifests) DeleteApplied() error {
 			"--context",
 			minikubeProfile,
 			"--namespace",
-			"kube-system",
+			traefikNamespace,
 			"delete",
 			"--grace-period=5",
 			"--filename",
@@ -156,7 +157,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		&clientcmd.ConfigOverrides{
 			CurrentContext: minikubeProfile,
 			Context: clientcmdapi.Context{
-				Namespace: "kube-system",
+				Namespace: traefikNamespace,
 			},
 		},
 	).ClientConfig()
@@ -200,9 +201,8 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	// Get the service NodePort.
-	// TODO: Extract namespace into constant.
 	// TODO: Parse service name from manifest file.
-	svc, err := s.client.Services("kube-system").Get("traefik-ingress-service")
+	svc, err := s.client.Services(traefikNamespace).Get("traefik-ingress-service")
 	c.Assert(err, checker.IsNil)
 	var nodePort int32
 	for _, port := range svc.Spec.Ports {
