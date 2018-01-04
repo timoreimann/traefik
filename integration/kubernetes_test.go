@@ -112,11 +112,14 @@ func (km *kubeManifests) DeleteApplied() error {
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
+	// TOOD: Move to function.
+	// TODO: Check for minimum versions.
 	_, err := exec.LookPath("minikube")
 	c.Assert(err, checker.IsNil, check.Commentf("minikube must be installed"))
 	_, err = exec.LookPath("kubectl")
 	c.Assert(err, checker.IsNil, check.Commentf("kubectl must be installed"))
 
+	// TODO: Move to function.
 	minikubeInitCmd := "minikube"
 	// Configure minikube if we run on the CI system.
 	if os.Getenv("CI") != "" {
@@ -129,6 +132,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		minikubeEnvVars = append(minikubeEnvVars, "CHANGE_MINIKUBE_NONE_USER=true")
 	}
 
+	// TODO: Move to function.
 	cmd := exec.Command("minikube", "status")
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
@@ -149,6 +153,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		c.Assert(err, checker.IsNil)
 	}
 
+	// TODO: Move to function.
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		clientcmd.NewDefaultClientConfigLoadingRules(),
 		&clientcmd.ConfigOverrides{
@@ -171,6 +176,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	s.client = client
 
 	// Wait for cluster to become ready.
+	// TODO: Use client-go.
 	err = try.Do(1*time.Minute, func() error {
 		cmd := exec.Command(
 			"kubectl",
@@ -197,6 +203,8 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	// Get the service NodePort.
+	// TODO: Extract namespace into constant.
+	// TODO: Parse service name from manifest file.
 	svc, err := s.client.Services("kube-system").Get("traefik-ingress-service")
 	c.Assert(err, checker.IsNil)
 	var nodePort int32
