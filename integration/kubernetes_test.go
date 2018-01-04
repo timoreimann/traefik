@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containous/traefik/provider/label"
@@ -112,12 +113,8 @@ func (km *kubeManifests) DeleteApplied() error {
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
-	// TOOD: Move to function.
-	// TODO: Check for minimum versions.
-	_, err := exec.LookPath("minikube")
-	c.Assert(err, checker.IsNil, check.Commentf("minikube must be installed"))
-	_, err = exec.LookPath("kubectl")
-	c.Assert(err, checker.IsNil, check.Commentf("kubectl must be installed"))
+	err := checkRequirements()
+	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
 
 	// TODO: Move to function.
 	minikubeInitCmd := "minikube"
@@ -342,4 +339,21 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 	// Query application via Traefik.
 	err = try.GetRequest("http://127.0.0.1:8000/service", 45*time.Second, try.StatusCodeIs(http.StatusOK))
 	c.Assert(err, checker.IsNil)
+}
+
+func checkRequirements() error {
+	// TODO: Check for minimum versions.
+	var missing []string
+	if _, err := exec.LookPath("minikube"); err != nil {
+		missing = append(missing, "minikube")
+	}
+	if _, err := exec.LookPath("kubectl"); err != nil {
+		missing = append(missing, "kubectl")
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("the following components must be installed: %s", strings.Join(missing, ", "))
+	}
+
+	return nil
 }
