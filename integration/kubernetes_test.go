@@ -97,6 +97,9 @@ func (km *kubeManifests) Apply(names ...string) error {
 }
 
 func (km *kubeManifests) DeleteApplied() error {
+	if len(*km) > 0 {
+		fmt.Printf("Deleting %d manifest(s)\n", len(*km))
+	}
 	for _, manifest := range *km {
 		cmd := exec.Command(
 			"kubectl",
@@ -126,6 +129,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	cmd := exec.Command("minikube", "status")
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
 	cmd.Stderr = os.Stderr
+	fmt.Println("Checking minikube status")
 	if err := cmd.Run(); err != nil {
 		_, ok := err.(*exec.ExitError)
 		c.Assert(ok, checker.True, check.Commentf("\"minikube status\" failed: %s", err))
@@ -153,6 +157,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		cmd.Env = append(os.Environ(), envVars...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+		fmt.Println("Starting minikube")
 		err := cmd.Run()
 		c.Assert(err, checker.IsNil)
 		if !onCI {
@@ -182,7 +187,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	s.master = master
 	s.client = client
 
-	// Wait for cluster to become ready.
+	fmt.Println("Waiting for cluster to become ready")
 	err = try.Do(1*time.Minute, func() error {
 		_, err := s.client.ServerVersion()
 		return err
@@ -192,6 +197,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 
 func (s *KubernetesSuite) TearDownSuite(c *check.C) {
 	if s.stopAfterCompletion {
+		fmt.Println("Stopping minikube as it was not running previously")
 		// TODO: Move to function.
 		// Stop minikube.
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStopTimeout)
