@@ -177,14 +177,9 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	s.client = client
 
 	// Wait for cluster to become ready.
-	// TODO: Use client-go.
 	err = try.Do(1*time.Minute, func() error {
-		cmd := exec.Command(
-			"kubectl",
-			"--context",
-			minikubeProfile,
-			"api-versions")
-		return cmd.Run()
+		_, err := s.client.ServerVersion()
+		return err
 	})
 	c.Assert(err, checker.IsNil)
 }
