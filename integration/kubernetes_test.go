@@ -385,16 +385,19 @@ func getNameFromManifest(name, kind string) (string, error) {
 	}
 
 	dec := yaml.NewYAMLToJSONDecoder(file)
-	for err != io.EOF {
-		err = dec.Decode(&object)
-		if err != nil && err != io.EOF {
+	var numObjects int
+	for {
+		if err := dec.Decode(&object); err != nil {
+			if err == io.EOF {
+				return "", fmt.Errorf("failed to find object of kind %q among %d object(s) in manifest %q", kind, numObjects, name)
+			}
 			return "", fmt.Errorf("failed to decode manifest %q: %s", name, err)
 		}
 
+		numObjects++
 		if object.Kind == kind {
 			return object.Metadata.Name, nil
 		}
 	}
 
-	return "", fmt.Errorf("failed to find object of kind %q in manifest %q", kind, name)
 }
