@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"k8s.io/client-go/pkg/util/yaml"
 
 	"github.com/containous/traefik/provider/label"
 
@@ -201,8 +204,10 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	// Get the service NodePort.
-	// TODO: Parse service name from manifest file.
-	svc, err := s.client.Services(traefikNamespace).Get("traefik-ingress-service")
+	svcName, err := getNameFromManifest("traefik-deployment.yaml", "Service")
+	c.Assert(err, checker.IsNil, check.Commentf("failed to get service: %s", err))
+
+	svc, err := s.client.Services(traefikNamespace).Get(svcName)
 	c.Assert(err, checker.IsNil)
 	var nodePort int32
 	for _, port := range svc.Spec.Ports {
@@ -356,4 +361,40 @@ func checkRequirements() error {
 	}
 
 	return nil
+}
+
+func getNameFromManifest(name, kind string) (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current working directory: %s", err)
+	}
+
+	manifest := filepath.Join(cwd, examplesRelativeDirectory, name)
+
+	file, err := os.Open(manifest)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	var object struct {
+		Kind     string `yaml:"kind"`
+		Metadata struct {
+			Name string `yaml:"name"`
+		} `yaml:"metadata"`
+	}
+
+	dec := yaml.NewYAMLToJSONDecoder(file)
+	for err != io.EOF {
+		err = dec.Decode(&object)
+		if err != nil && err != io.EOF {
+			return "", fmt.Errorf("failed to decode manifest %q: %s", name, err)
+		}
+
+		if object.Kind == kind {
+			return object.Metadata.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to find object of kind %q in manifest %q", kind, name)
 }
