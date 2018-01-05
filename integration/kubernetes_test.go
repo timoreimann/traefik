@@ -118,6 +118,8 @@ func (km *kubeManifests) DeleteApplied() error {
 		}
 	}
 
+	// TODO: Can tests finish before all objects are truly deleted? Do we need to poll for assured deletion?
+
 	return nil
 }
 
@@ -222,6 +224,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	// Validate Traefik is reachable.
 	err := manifests.Apply(
 		"traefik-rbac.yaml",
+		// TODO: Use Traefik binary built for test? Hook up local Docker daemon and update manifest maybe?
 		"traefik-deployment.yaml",
 	)
 	c.Assert(err, checker.IsNil)
