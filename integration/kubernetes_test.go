@@ -36,6 +36,7 @@ const (
 	traefikNamespace          = "kube-system"
 	kubernetesVersion         = "v1.8.0"
 	minikubeStartupTimeout    = 90 * time.Second
+	minikubeStopTimeout       = 30 * time.Second
 	examplesRelativeDirectory = "../examples/k8s"
 )
 
@@ -58,9 +59,10 @@ var (
 
 type KubernetesSuite struct {
 	BaseSuite
-	client   *kubernetes.Clientset
-	nodeHost string
-	master   *url.URL
+	client              *kubernetes.Clientset
+	nodeHost            string
+	master              *url.URL
+	stopAfterCompletion bool
 }
 
 type kubeManifests []string
@@ -121,37 +123,41 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
 
 	// TODO: Move to function.
-	minikubeInitCmd := "minikube"
-	// Configure minikube if we run on the CI system.
-	if os.Getenv("CI") != "" {
-		// Bootstrap Kubernetes natively on the host system.
-		minikubeStartArgs = append(minikubeStartArgs, "--vm-driver=none")
-		// Native Kubernetes requires root privileges.
-		minikubeInitCmd = "sudo"
-		minikubeStartArgs = append([]string{"--preserve-env", "minikube"}, minikubeStartArgs...)
-		// Make sure root-owned files are moved to the proper location.
-		minikubeEnvVars = append(minikubeEnvVars, "CHANGE_MINIKUBE_NONE_USER=true")
-	}
-
-	// TODO: Move to function.
 	cmd := exec.Command("minikube", "status")
-	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		_, ok := err.(*exec.ExitError)
 		c.Assert(ok, checker.True, check.Commentf("\"minikube status\" failed: %s", err))
 
 		// Start minikube.
-		// TODO: stop after usage
+		// TODO: Move to function.
+
+		minikubeInitCmd := "minikube"
+		envVars := minikubeEnvVars
+		onCI := os.Getenv("CI") != ""
+		// Adapt minikube parameters if we run on the CI system.
+		if onCI {
+			// Bootstrap Kubernetes natively on the host system.
+			minikubeStartArgs = append(minikubeStartArgs, "--vm-driver=none")
+			// Native Kubernetes requires root privileges.
+			minikubeInitCmd = "sudo"
+			minikubeStartArgs = append([]string{"--preserve-env", "minikube"}, minikubeStartArgs...)
+			// Make sure root-owned files are moved to the proper location.
+			envVars = append(minikubeEnvVars[:], "CHANGE_MINIKUBE_NONE_USER=true")
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
 		defer cancel()
 
 		cmd := exec.CommandContext(ctx, minikubeInitCmd, minikubeStartArgs...)
-		cmd.Env = append(os.Environ(), minikubeEnvVars...)
+		cmd.Env = append(os.Environ(), envVars...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
 		c.Assert(err, checker.IsNil)
+		if !onCI {
+			s.stopAfterCompletion = true
+		}
 	}
 
 	// TODO: Move to function.
@@ -182,6 +188,22 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		return err
 	})
 	c.Assert(err, checker.IsNil)
+}
+
+func (s *KubernetesSuite) TearDownSuite(c *check.C) {
+	if s.stopAfterCompletion {
+		// TODO: Move to function.
+		// Stop minikube.
+		ctx, cancel := context.WithTimeout(context.Background(), minikubeStopTimeout)
+		defer cancel()
+
+		cmd := exec.CommandContext(ctx, "minikube", "stop", "--logtostderr")
+		cmd.Env = append(os.Environ(), minikubeEnvVars...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		c.Assert(err, checker.IsNil)
+	}
 }
 
 func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
