@@ -4,7 +4,7 @@ set -o pipefail
 set -o nounset
 
 readonly DEST_DIR=/usr/local/bin
-readonly CACHE_DIR="${SEMAPHORE_CACHE_DIR}/kubernetes"
+readonly CACHE_DIR="${SEMAPHORE_CACHE_DIR}"
 
 update_binary() {
   local -r tmp_dir="$1"
