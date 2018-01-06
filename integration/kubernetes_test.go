@@ -169,14 +169,16 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	}
 
 	minikubeDockerEnvCmd := "minikube"
+	envVars := minikubeEnvVars
 	if onCI {
 		minikubeDockerEnvCmd = "sudo --preserve-env minikube"
+		envVars = append(minikubeEnvVars[:], "CHANGE_MINIKUBE_NONE_USER=true")
 	}
 
 	// Load current Traefik image into minikube.
 	cmd = exec.Command("bash", "-c", fmt.Sprintf("docker save traefik:kube-test | (eval $(%s docker-env --alsologtostderr) && docker load)", minikubeDockerEnvCmd))
-	fmt.Printf("current env vars: %s adding env vars: %s\n", os.Environ(), minikubeEnvVars)
-	cmd.Env = append(os.Environ(), minikubeEnvVars...)
+	fmt.Printf("current env vars: %s adding env vars: %s\n", os.Environ(), envVars)
+	cmd.Env = append(os.Environ(), envVars...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	fmt.Println("Loading current Traefik image into minikube")
