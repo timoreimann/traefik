@@ -102,6 +102,14 @@ image-dirty: binary ## build a docker traefik image
 image: clear-static binary ## clean up static directory and build a docker traefik image
 	docker build -t $(TRAEFIK_IMAGE) .
 
+patch-image:
+	@set -o errexit; \
+	CID=$$(docker run -d containous/traefik:experimental | tail -n 1); \
+	docker cp dist/traefik $$CID:/traefik; \
+	docker commit $$CID traefik:kube-test 2>&1 > /dev/null; \
+	docker rm -f $$CID 2>&1 > /dev/null; \
+	sed 's/image: [^\s]\{1,\}/image: traefik:kube-test/' examples/k8s/traefik-deployment.yaml > integration/resources/traefik-deployment.test.yaml; \
+
 docs: docs-image
 	docker run  $(DOCKER_RUN_DOC_OPTS) $(TRAEFIK_DOC_IMAGE) mkdocs serve
 

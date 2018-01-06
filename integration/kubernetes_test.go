@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -37,7 +38,7 @@ const (
 	kubernetesVersion         = "v1.8.0"
 	minikubeStartupTimeout    = 90 * time.Second
 	minikubeStopTimeout       = 30 * time.Second
-	examplesRelativeDirectory = "../examples/k8s"
+	examplesRelativeDirectory = "examples/k8s"
 )
 
 var (
@@ -68,13 +69,12 @@ type KubernetesSuite struct {
 type kubeManifests []string
 
 func (km *kubeManifests) Apply(names ...string) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %s", err)
-	}
-
 	for _, name := range names {
-		manifest := filepath.Join(cwd, examplesRelativeDirectory, name)
+		manifest := name
+		if !path.IsAbs(manifest) {
+			manifest = createAbsoluteManifestPath(manifest)
+		}
+
 		cmd := exec.Command(
 			"kubectl",
 			"--context",
@@ -167,6 +167,15 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		}
 	}
 
+	// Load current Traefik image into minikube.
+	cmd = exec.Command("bash", "-c", "docker save traefik:kube-test | (eval $(minikube docker-env) && docker load)")
+	cmd.Env = append(os.Environ(), minikubeEnvVars...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	fmt.Println("Loading current Traefik image into minikube")
+	err = cmd.Run()
+	c.Assert(err, checker.IsNil)
+
 	// TODO: Move to function.
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		clientcmd.NewDefaultClientConfigLoadingRules(),
@@ -221,11 +230,13 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 		c.Assert(err, checker.IsNil)
 	}()
 
+	// Use Deployment manifest referencing current traefik binary.
+	patchedDeployment := createAbsolutePath("integration/resources/traefik-deployment.test.yaml")
+
 	// Validate Traefik is reachable.
 	err := manifests.Apply(
 		"traefik-rbac.yaml",
-		// TODO: Use Traefik binary built for test? Hook up local Docker daemon and update manifest maybe?
-		"traefik-deployment.yaml",
+		patchedDeployment,
 	)
 	c.Assert(err, checker.IsNil)
 
@@ -389,13 +400,7 @@ func checkRequirements() error {
 }
 
 func getNameFromManifest(name, kind string) (string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current working directory: %s", err)
-	}
-
-	manifest := filepath.Join(cwd, examplesRelativeDirectory, name)
-
+	manifest := createAbsoluteManifestPath(name)
 	file, err := os.Open(manifest)
 	if err != nil {
 		return "", err
@@ -424,5 +429,17 @@ func getNameFromManifest(name, kind string) (string, error) {
 			return object.Metadata.Name, nil
 		}
 	}
+}
 
+func createAbsoluteManifestPath(name string) string {
+	return createAbsolutePath(filepath.Join(examplesRelativeDirectory, name))
+}
+
+func createAbsolutePath(relativeFileName string) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(fmt.Sprintf("failed to get current working directory: %s", err))
+	}
+
+	return filepath.Join(cwd, "..", relativeFileName)
 }
