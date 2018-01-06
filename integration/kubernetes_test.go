@@ -269,8 +269,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 
 	req = testhelpers.MustNewRequest(http.MethodGet, baseTraefikURL, nil)
 	for _, svc := range []string{"stilton", "cheddar", "wensleydale"} {
-		host := svc + ".minikube"
-		req.Host = host
+		req.Host = svc + ".minikube"
 		err = try.Request(req, 25*time.Second, try.StatusCodeIs(http.StatusOK))
 		c.Assert(err, checker.IsNil, check.Commentf("service %q access", svc))
 	}
