@@ -127,6 +127,8 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	err := checkRequirements()
 	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
 
+	onCI := os.Getenv("CI") != ""
+
 	// TODO: Move to function.
 	cmd := exec.Command("minikube", "status")
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
@@ -141,7 +143,6 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 
 		minikubeInitCmd := "minikube"
 		envVars := minikubeEnvVars
-		onCI := os.Getenv("CI") != ""
 		// Adapt minikube parameters if we run on the CI system.
 		if onCI {
 			// Bootstrap Kubernetes natively on the host system.
@@ -167,8 +168,13 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		}
 	}
 
+	minikubeDockerEnvCmd := "minikube"
+	if onCI {
+		minikubeDockerEnvCmd = "sudo --preserve-env minikube"
+	}
+
 	// Load current Traefik image into minikube.
-	cmd = exec.Command("bash", "-c", "docker save traefik:kube-test | (eval $(minikube docker-env --alsologtostderr) && docker load)")
+	cmd = exec.Command("bash", "-c", fmt.Sprintf("docker save traefik:kube-test | (eval $(%s docker-env --alsologtostderr) && docker load)", minikubeDockerEnvCmd))
 	fmt.Printf("current env vars: %s adding env vars: %s\n", os.Environ(), minikubeEnvVars)
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
 	cmd.Stdout = os.Stdout
