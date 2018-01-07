@@ -176,6 +176,23 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	}
 
 	// Load current Traefik image into minikube.
+	// saveCmd := exec.Command("docker", "save", "traefik:kube-test")
+	// loadCmd := exec.Command("eval", "save", "traefik:kube-test")
+	// stdout, err := saveCmd.StdinPipe()
+	// c.Assert(err, checker.IsNil)
+	// err = saveCmd.Start()
+	// c.Assert(err, checker.IsNil)
+
+	shellCmd := fmt.Sprintf("eval $(%s docker-env --alsologtostderr -p %s)", minikubeDockerEnvCmd, minikubeProfile)
+	fmt.Printf("executing shell command: bash -c '%s'\n", shellCmd)
+	cmd = exec.Command("bash", "-c", shellCmd)
+	cmd.Env = append(os.Environ(), envVars...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	fmt.Println("Setting up Docker env var for minikube")
+	err = cmd.Run()
+	c.Assert(err, checker.IsNil)
+
 	cmd = exec.Command("bash", "-c", fmt.Sprintf("docker save traefik:kube-test | (eval $(%s docker-env --alsologtostderr -p %s) && docker load)", minikubeDockerEnvCmd, minikubeProfile))
 	fmt.Printf("current env vars: %s adding env vars: %s\n", os.Environ(), envVars)
 	cmd.Env = append(os.Environ(), envVars...)
