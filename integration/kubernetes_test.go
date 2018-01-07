@@ -183,7 +183,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	// err = saveCmd.Start()
 	// c.Assert(err, checker.IsNil)
 
-	shellCmd := fmt.Sprintf("eval $(%s docker-env --alsologtostderr -p %s)", minikubeDockerEnvCmd, minikubeProfile)
+	shellCmd := fmt.Sprintf("CHANGE_MINIKUBE_NONE_USER=true eval $(%s docker-env --alsologtostderr -p %s)", minikubeDockerEnvCmd, minikubeProfile)
 	fmt.Printf("executing shell command: bash -c '%s'\n", shellCmd)
 	cmd = exec.Command("bash", "-c", shellCmd)
 	cmd.Env = append(os.Environ(), envVars...)
