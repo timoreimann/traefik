@@ -229,10 +229,10 @@ func (s *KubernetesSuite) TearDownSuite(c *check.C) {
 
 func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	manifests := kubeManifests{}
-	defer func() {
-		err := manifests.DeleteApplied()
-		c.Assert(err, checker.IsNil)
-	}()
+	// defer func() {
+	// 	err := manifests.DeleteApplied()
+	// 	c.Assert(err, checker.IsNil)
+	// }()
 
 	// Use Deployment manifest referencing current traefik binary.
 	patchedDeployment := createAbsolutePath("integration/resources/traefik-deployment.test.yaml")
