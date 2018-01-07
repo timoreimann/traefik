@@ -238,12 +238,12 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	// }()
 
 	// Use Deployment manifest referencing current traefik binary.
-	// patchedDeployment := createAbsolutePath("integration/resources/traefik-deployment.test.yaml")
+	patchedDeployment := createAbsolutePath("integration/resources/traefik-deployment.test.yaml")
 
 	// Validate Traefik is reachable.
 	err := manifests.Apply(
 		"traefik-rbac.yaml",
-		"traefik-deployment.yaml",
+		patchedDeployment,
 	)
 	c.Assert(err, checker.IsNil)
 	defer func() {
