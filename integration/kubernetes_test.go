@@ -247,17 +247,35 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	)
 	c.Assert(err, checker.IsNil)
 	defer func() {
-		cmd := exec.Command(
-			"kubectl",
-			"--context",
-			minikubeProfile,
-			"--namespace",
-			traefikNamespace,
-			"logs",
-			"deploy/traefik-ingress-controller")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Run()
+		if c.Failed() {
+			fmt.Println("Traefik pod description:")
+			cmd := exec.Command(
+				"kubectl",
+				"--context",
+				minikubeProfile,
+				"--namespace",
+				traefikNamespace,
+				"describe",
+				"pod",
+				"-l",
+				"k8s-app=traefik-ingress-lb")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Run()
+
+			fmt.Println("Traefik pod logs:")
+			cmd = exec.Command(
+				"kubectl",
+				"--context",
+				minikubeProfile,
+				"--namespace",
+				traefikNamespace,
+				"logs",
+				"deploy/traefik-ingress-controller")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Run()
+		}
 	}()
 
 	// Get the service NodePort.
