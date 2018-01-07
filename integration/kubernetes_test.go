@@ -288,7 +288,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	req := testhelpers.MustNewRequest(http.MethodGet, baseTraefikURL+"dashboard/", nil)
 	req.Host = "traefik-ui.minikube"
 	err = try.Request(req, 3*time.Second, try.StatusCodeIs(http.StatusOK))
-	c.Assert(err, checker.IsNil, check.Commentf("traefik UI access (req: %s)", *req))
+	c.Assert(err, checker.IsNil, check.Commentf("traefik UI access (req: %s host: %s headers: %s)", *req, req.Host, req.Header))
 
 	// Validate third-party service is routable through Traefik.
 	err = manifests.Apply(
