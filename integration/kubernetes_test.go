@@ -12,22 +12,22 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/client-go/pkg/util/yaml"
+	"k8s.io/apimachinery/pkg/util/yaml"
 
 	"github.com/containous/traefik/provider/label"
 
 	"golang.org/x/net/context"
-	"k8s.io/client-go/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/containous/traefik/integration/try"
 	"github.com/containous/traefik/testhelpers"
-	"k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	"k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 
 	"github.com/go-check/check"
 	checker "github.com/vdemeester/shakers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -366,7 +366,7 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer cmd.Process.Kill()
 
-	// pods, err := client.CoreV1().Pods(api.NamespaceDefault).List(v1.ListOptions{})
+	// pods, err := client.CoreV1().Pods(metav1.NamespaceDefault).List(v1.ListOptions{})
 	// c.Assert(err, checker.IsNil)
 
 	// fmt.Printf("Got %d pod(s) in default namespace\n", len(pods.Items))
@@ -374,23 +374,23 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 	// 	fmt.Printf("#%d: %s\n", i+1, pod.ObjectMeta.Name)
 	// }
 
-	_, err = s.client.ExtensionsV1beta1().Ingresses(api.NamespaceDefault).Create(
-		&v1beta1.Ingress{
+	_, err = s.client.ExtensionsV1beta1().Ingresses(metav1.NamespaceDefault).Create(
+		&extensionsv1beta1.Ingress{
 			ObjectMeta: v1.ObjectMeta{
 				Name: "whoami",
 				Annotations: map[string]string{
 					label.TraefikFrontendRuleType: "Path",
 				},
 			},
-			Spec: v1beta1.IngressSpec{
-				Rules: []v1beta1.IngressRule{
-					v1beta1.IngressRule{
-						IngressRuleValue: v1beta1.IngressRuleValue{
-							HTTP: &v1beta1.HTTPIngressRuleValue{
-								Paths: []v1beta1.HTTPIngressPath{
-									v1beta1.HTTPIngressPath{
+			Spec: extensionsv1beta1.IngressSpec{
+				Rules: []extensionsv1beta1.IngressRule{
+					extensionsv1beta1.IngressRule{
+						IngressRuleValue: extensionsv1beta1.IngressRuleValue{
+							HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
+								Paths: []extensionsv1beta1.HTTPIngressPath{
+									extensionsv1beta1.HTTPIngressPath{
 										Path: "/service",
-										Backend: v1beta1.IngressBackend{
+										Backend: extensionsv1beta1.IngressBackend{
 											ServiceName: "whoami",
 											ServicePort: intstr.FromInt(8080),
 										},
@@ -405,7 +405,7 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 	)
 	c.Assert(err, checker.IsNil)
 
-	_, err = s.client.CoreV1().Services(api.NamespaceDefault).Create(
+	_, err = s.client.CoreV1().Services(metav1.NamespaceDefault).Create(
 		&v1.Service{
 			ObjectMeta: v1.ObjectMeta{
 				Name: "whoami",
@@ -425,7 +425,7 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 	)
 	c.Assert(err, checker.IsNil)
 
-	_, err = s.client.Pods(api.NamespaceDefault).Create(
+	_, err = s.client.Pods(metav1.NamespaceDefault).Create(
 		&v1.Pod{
 			ObjectMeta: v1.ObjectMeta{
 				Name: "whoami",
