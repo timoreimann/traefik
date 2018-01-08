@@ -275,6 +275,15 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			cmd.Run()
+
+			fmt.Println("df -h:")
+			cmd = exec.Command(
+				"sudo",
+				"df",
+				"-h")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Run()
 		}
 	}()
 
