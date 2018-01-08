@@ -285,6 +285,17 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 			cmd.Stderr = os.Stderr
 			cmd.Run()
 
+			fmt.Println("Nodes description:")
+			cmd = exec.Command(
+				"kubectl",
+				"--context",
+				minikubeProfile,
+				"describe",
+				"nodes")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Run()
+
 			fmt.Println("df -h:")
 			cmd = exec.Command(
 				"sudo",
