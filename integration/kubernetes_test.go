@@ -48,7 +48,7 @@ var (
 		fmt.Sprintf("--kubernetes-version=%s", kubernetesVersion),
 		"--extra-config=apiserver.Authorization.Mode=RBAC",
 		"--keep-context",
-		"--disk-size=5g",
+		"--disk-size=15g",
 	}
 
 	minikubeEnvVars = []string{
