@@ -124,13 +124,22 @@ func (km *kubeManifests) DeleteApplied() error {
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
+	fmt.Println("df -h (on start):")
+	cmd := exec.Command(
+		"sudo",
+		"df",
+		"-h")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+
 	err := checkRequirements()
 	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
 
 	onCI := os.Getenv("CI") != ""
 
 	// TODO: Move to function.
-	cmd := exec.Command("minikube", "status")
+	cmd = exec.Command("minikube", "status")
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
 	cmd.Stderr = os.Stderr
 	fmt.Println("Checking minikube status")
