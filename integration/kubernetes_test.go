@@ -12,21 +12,17 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/yaml"
-
-	"github.com/containous/traefik/provider/label"
-
-	"golang.org/x/net/context"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"github.com/containous/traefik/integration/try"
+	"github.com/containous/traefik/provider/label"
 	"github.com/containous/traefik/testhelpers"
-	corev1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
-
 	"github.com/go-check/check"
 	checker "github.com/vdemeester/shakers"
+	"golang.org/x/net/context"
+	corev1 "k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
