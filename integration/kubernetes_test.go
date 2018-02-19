@@ -21,7 +21,7 @@ import (
 
 	"github.com/containous/traefik/integration/try"
 	"github.com/containous/traefik/testhelpers"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 
 	"github.com/go-check/check"
@@ -312,7 +312,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	svcName, err := getNameFromManifest("traefik-deployment.yaml", "Service")
 	c.Assert(err, checker.IsNil, check.Commentf("failed to get service: %s", err))
 
-	svc, err := s.client.Services(traefikNamespace).Get(svcName)
+	svc, err := s.client.CoreV1().Services(traefikNamespace).Get(svcName, metav1.GetOptions{})
 	c.Assert(err, checker.IsNil)
 	var nodePort int32
 	for _, port := range svc.Spec.Ports {
@@ -366,7 +366,7 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer cmd.Process.Kill()
 
-	// pods, err := client.CoreV1().Pods(metav1.NamespaceDefault).List(v1.ListOptions{})
+	// pods, err := client.CoreV1().Pods(metav1.NamespaceDefault).List(corev1.ListOptions{})
 	// c.Assert(err, checker.IsNil)
 
 	// fmt.Printf("Got %d pod(s) in default namespace\n", len(pods.Items))
@@ -376,7 +376,7 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 
 	_, err = s.client.ExtensionsV1beta1().Ingresses(metav1.NamespaceDefault).Create(
 		&extensionsv1beta1.Ingress{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "whoami",
 				Annotations: map[string]string{
 					label.TraefikFrontendRuleType: "Path",
@@ -406,13 +406,13 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	_, err = s.client.CoreV1().Services(metav1.NamespaceDefault).Create(
-		&v1.Service{
-			ObjectMeta: v1.ObjectMeta{
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "whoami",
 			},
-			Spec: v1.ServiceSpec{
-				Ports: []v1.ServicePort{
-					v1.ServicePort{
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					corev1.ServicePort{
 						Port:       int32(8080),
 						TargetPort: intstr.FromInt(80),
 					},
@@ -425,17 +425,17 @@ func (s *KubernetesSuite) TestBasic(c *check.C) {
 	)
 	c.Assert(err, checker.IsNil)
 
-	_, err = s.client.Pods(metav1.NamespaceDefault).Create(
-		&v1.Pod{
-			ObjectMeta: v1.ObjectMeta{
+	_, err = s.client.CoreV1().Pods(metav1.NamespaceDefault).Create(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "whoami",
 				Labels: map[string]string{
 					"app": "whoami",
 				},
 			},
-			Spec: v1.PodSpec{
-				Containers: []v1.Container{
-					v1.Container{
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					corev1.Container{
 						Image: "emilevauge/whoami",
 						Name:  "whoami",
 					},
