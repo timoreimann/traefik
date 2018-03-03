@@ -1,6 +1,6 @@
 kind: Namespace
 apiVersion: v1
 metadata:
-  name: kube-system
+  name: traefik
   labels:
-    name: kube-system
+    name: traefik

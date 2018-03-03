@@ -20,6 +20,7 @@ import (
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -30,7 +31,7 @@ import (
 
 const (
 	minikubeProfile           = "traefik-integration-test"
-	traefikNamespace          = "kube-system"
+	traefikNamespace          = "traefik"
 	kubernetesVersion         = "v1.8.0"
 	minikubeStartupTimeout    = 90 * time.Second
 	minikubeStopTimeout       = 30 * time.Second
@@ -169,7 +170,8 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		fmt.Println("Starting minikube")
 		err := cmd.Run()
 		c.Assert(err, checker.IsNil)
-		if !onCI {
+		skipStop := os.Getenv("K8S_SKIP_VM_CLEANUP") == "true"
+		if !skipStop && !onCI {
 			s.stopAfterCompletion = true
 		}
 	}
@@ -234,6 +236,28 @@ func (s *KubernetesSuite) TearDownSuite(c *check.C) {
 		err := cmd.Run()
 		c.Assert(err, checker.IsNil)
 	}
+}
+
+func (s *KubernetesSuite) SetUpTest(c *check.C) {
+	policy := metav1.DeletePropagationForeground
+	if err := s.client.CoreV1().Namespaces().Delete(traefikNamespace, &metav1.DeleteOptions{
+		PropagationPolicy: &policy,
+	}); err != nil {
+		c.Assert(kerrors.IsNotFound(err), checker.True, check.Commentf("failed to delete namespace %q: %#+v", traefikNamespace, err))
+	}
+
+	// Retry because the preceding Delete operation takes a while to complete,
+	// which manifests in 409 ("AlreadyExists") errors.
+	err := try.Do(1*time.Minute, func() error {
+		_, err := s.client.CoreV1().Namespaces().Create(&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: traefikNamespace,
+			},
+		})
+
+		return err
+	})
+	c.Assert(err, checker.IsNil, check.Commentf("failed to create namespace %q: %s", traefikNamespace, err))
 }
 
 func (s *KubernetesSuite) TestManifestExamples(c *check.C) {

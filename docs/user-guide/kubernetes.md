@@ -15,6 +15,14 @@ The config files used in this guide can be found in the [examples directory](htt
 
 2. The `kubectl` binary should be [installed on your workstation](https://kubernetes.io/docs/getting-started-guides/minikube/#download-kubectl).
 
+### Dedicated Namespace
+
+The guide expects Træfik to be installed into the dedicated namespace `traefik`:
+
+```shell
+kubectl create namespace traefik
+```
+
 ### Role Based Access Control configuration (Kubernetes 1.6+ only)
 
 Kubernetes introduces [Role Based Access Control (RBAC)](https://kubernetes.io/docs/admin/authorization/rbac/) in 1.6+ to allow fine-grained control of Kubernetes resources and API.
@@ -65,7 +73,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: traefik-ingress-controller
-  namespace: kube-system
+  namespace: traefik
 ```
 
 [examples/k8s/traefik-rbac.yaml](https://github.com/containous/traefik/tree/master/examples/k8s/traefik-rbac.yaml)
@@ -93,13 +101,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: traefik-ingress-controller
-  namespace: kube-system
+  namespace: traefik
 ---
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
   name: traefik-ingress-controller
-  namespace: kube-system
+  namespace: traefik
   labels:
     k8s-app: traefik-ingress-lb
 spec:
@@ -127,7 +135,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: traefik-ingress-service
-  namespace: kube-system
+  namespace: traefik
 spec:
   selector:
     k8s-app: traefik-ingress-lb
@@ -154,13 +162,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: traefik-ingress-controller
-  namespace: kube-system
+  namespace: traefik
 ---
 kind: DaemonSet
 apiVersion: extensions/v1beta1
 metadata:
   name: traefik-ingress-controller
-  namespace: kube-system
+  namespace: traefik
   labels:
     k8s-app: traefik-ingress-lb
 spec:
@@ -197,7 +205,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: traefik-ingress-service
-  namespace: kube-system
+  namespace: traefik
 spec:
   selector:
     k8s-app: traefik-ingress-lb
@@ -235,16 +243,14 @@ There are some significant differences between using Deployments and DaemonSets:
 
 Now lets check if our command was successful.
 
-Start by listing the pods in the `kube-system` namespace:
+Start by listing the pods in the `traefik` namespace:
 
 ```shell
-kubectl --namespace=kube-system get pods
+kubectl --namespace=traefik get pods
 ```
 
 ```shell
 NAME                                         READY     STATUS    RESTARTS   AGE
-kube-addon-manager-minikubevm                1/1       Running   0          4h
-kubernetes-dashboard-s8krj                   1/1       Running   0          4h
 traefik-ingress-controller-678226159-eqseo   1/1       Running   0          7m
 ```
 
@@ -253,7 +259,7 @@ _It might take a few moments for Kubernetes to pull the Træfik image and start 
 
 !!! note
     You could also check the deployment with the Kubernetes dashboard, run
-    `minikube dashboard` to open it in your browser, then choose the `kube-system`
+    `minikube dashboard` to open it in your browser, then choose the `traefik`
     namespace from the menu at the top right of the screen.
 
 You should now be able to access Træfik on port 80 of your Minikube instance when using the DaemonSet:
@@ -266,7 +272,7 @@ curl $(minikube ip)
 404 page not found
 ```
 
-If you decided to use the deployment, then you need to target the correct NodePort, which can be seen when you execute `kubectl get services --namespace=kube-system`.
+If you decided to use the deployment, then you need to target the correct NodePort, which can be seen when you execute `kubectl get services --namespace=traefik`.
 
 ```shell
 curl $(minikube ip):<NODEPORT>
@@ -305,7 +311,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: traefik-web-ui
-  namespace: kube-system
+  namespace: traefik
 spec:
   selector:
     k8s-app: traefik-ingress-lb
@@ -317,7 +323,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: traefik-web-ui
-  namespace: kube-system
+  namespace: traefik
   annotations:
     kubernetes.io/ingress.class: traefik
 spec:
@@ -359,7 +365,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: traefik-web-ui
-  namespace: kube-system
+  namespace: traefik
   annotations:
     kubernetes.io/ingress.class: traefik
 spec:
@@ -378,7 +384,7 @@ In addition to the modified ingress you need to provide the TLS certificate via 
 
 ```shell
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=traefik-ui.minikube"
-kubectl -n kube-system create secret tls traefik-ui-tls-cert --key=tls.key --cert=tls.crt
+kubectl -n traefik create secret tls traefik-ui-tls-cert --key=tls.key --cert=tls.crt
 ```
 
 If there are any errors while loading the TLS section of an ingress, the whole ingress will be skipped.
