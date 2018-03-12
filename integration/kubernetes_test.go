@@ -122,14 +122,14 @@ func (km *kubeManifests) DeleteApplied() error {
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
-	fmt.Println("df -h (on start):")
-	cmd := exec.Command(
-		"sudo",
-		"df",
-		"-h")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
+	// fmt.Println("df -h (on start):")
+	// cmd := exec.Command(
+	// 	"sudo",
+	// 	"df",
+	// 	"-h")
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
+	// cmd.Run()
 
 	err := checkRequirements()
 	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
@@ -137,7 +137,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	onCI := os.Getenv("CI") != ""
 
 	// TODO: Move to function.
-	cmd = exec.Command("minikube", "status")
+	cmd := exec.Command("minikube", "status")
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
 	cmd.Stderr = os.Stderr
 	fmt.Println("Checking minikube status")
@@ -179,7 +179,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	if !onCI {
 		// Transfer current Traefik image into minikube. This is not necessary
 		// on the CI where we use the host-based none driver.
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("docker save traefik:kube-test | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load)", minikubeProfile))
+		cmd := exec.Command("bash", "-c", fmt.Sprintf("docker save traefik:kube-test | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load)", minikubeProfile))
 		cmd.Env = append(os.Environ(), minikubeEnvVars...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -317,14 +317,14 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 			cmd.Stderr = os.Stderr
 			cmd.Run()
 
-			fmt.Println("df -h:")
-			cmd = exec.Command(
-				"sudo",
-				"df",
-				"-h")
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Run()
+			// fmt.Println("df -h:")
+			// cmd = exec.Command(
+			// 	"sudo",
+			// 	"df",
+			// 	"-h")
+			// cmd.Stdout = os.Stdout
+			// cmd.Stderr = os.Stderr
+			// cmd.Run()
 		}
 	}()
 
