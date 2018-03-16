@@ -109,6 +109,7 @@ patch-image:
 	docker commit $$CID traefik:kube-test 2>&1 > /dev/null; \
 	docker rm -f $$CID 2>&1 > /dev/null; \
 	sed 's/image: [^\s]\{1,\}/image: traefik:kube-test/' examples/k8s/traefik-deployment.yaml > integration/resources/traefik-deployment.test.yaml; \
+	sed 's/image: [^\s]\{1,\}/image: traefik:kube-test/' examples/k8s/traefik-ds.yaml > integration/resources/traefik-ds.test.yaml; \
 
 docs: docs-image
 	docker run  $(DOCKER_RUN_DOC_OPTS) $(TRAEFIK_DOC_IMAGE) mkdocs serve

@@ -273,7 +273,15 @@ func (s *KubernetesSuite) SetUpTest(c *check.C) {
 	c.Assert(err, checker.IsNil, check.Commentf("failed to create namespace %q: %s", traefikNamespace, err))
 }
 
-func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
+func (s *KubernetesSuite) TestDeploymentManifestExamples(c *check.C) {
+	s.doTestManifestExamples(c, "traefik-deployment")
+}
+
+func (s *KubernetesSuite) TestDaemonSetManifestExamples(c *check.C) {
+	s.doTestManifestExamples(c, "traefik-ds")
+}
+
+func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest string) {
 	manifests := kubeManifests{}
 	// defer func() {
 	// 	err := manifests.DeleteApplied()
@@ -281,7 +289,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	// }()
 
 	// Use Deployment manifest referencing current traefik binary.
-	patchedDeployment := createAbsolutePath("integration/resources/traefik-deployment.test.yaml")
+	patchedDeployment := createAbsolutePath(fmt.Sprintf("integration/resources/%s.test.yaml", workloadManifest))
 
 	// Validate Traefik is reachable.
 	err := manifests.Apply(
@@ -342,7 +350,7 @@ func (s *KubernetesSuite) TestManifestExamples(c *check.C) {
 	}()
 
 	// Get the service NodePort.
-	svcName, err := getNameFromManifest("traefik-deployment.yaml", "Service")
+	svcName, err := getNameFromManifest(fmt.Sprintf("%s.yaml", workloadManifest), "Service")
 	c.Assert(err, checker.IsNil, check.Commentf("failed to get service: %s", err))
 
 	svc, err := s.client.CoreV1().Services(traefikNamespace).Get(svcName, metav1.GetOptions{})
