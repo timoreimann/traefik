@@ -243,24 +243,32 @@ func (s *KubernetesSuite) TearDownSuite(c *check.C) {
 }
 
 func (s *KubernetesSuite) SetUpTest(c *check.C) {
+	// (Re-)create the test namespace.
+
+	// First, delete any left-overs from previous tests.
 	policy := metav1.DeletePropagationForeground
-	if err := s.client.CoreV1().Namespaces().Delete(traefikNamespace, &metav1.DeleteOptions{
+	fmt.Printf("Deleting any left-overs of test namespace %q\n", traefikNamespace)
+	err := s.client.CoreV1().Namespaces().Delete(traefikNamespace, &metav1.DeleteOptions{
 		PropagationPolicy: &policy,
-	}); err != nil {
-		c.Assert(kerrors.IsNotFound(err), checker.True, check.Commentf("failed to delete namespace %q: %#+v", traefikNamespace, err))
+	})
+	// We ignore conflicts as they indicate that a deletion is already in
+	// progress.
+	if err != nil && !kerrors.IsConflict(err) && !kerrors.IsNotFound(err) {
+		c.Fatalf("failed to delete namespace %q: %#+v", traefikNamespace, err)
 	}
 
-	// Retry because the preceding Delete operation takes a while to complete,
-	// which manifests in 409 ("AlreadyExists") errors.
-	err := try.Do(1*time.Minute, func() error {
+	// Retry creating because the preceding Delete operation takes a while to
+	// complete, manifesting in 409 ("AlreadyExists") errors.
+	fmt.Printf("Creating test namespace %q\n", traefikNamespace)
+	err = try.Do(90*time.Second, func() error {
 		_, err := s.client.CoreV1().Namespaces().Create(&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: traefikNamespace,
 			},
 		})
-
 		return err
 	})
+
 	c.Assert(err, checker.IsNil, check.Commentf("failed to create namespace %q: %s", traefikNamespace, err))
 }
 
