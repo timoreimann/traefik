@@ -130,42 +130,12 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 
 	onCI := os.Getenv("CI") != ""
 
-	// TODO: Move to function.
-	cmd := exec.Command("minikube", "status")
-	// TODO: Use dynamically created profile name to avoid conflicts in CI
-	// situations unless enforced via custom env var.
-	cmd.Env = append(os.Environ(), minikubeEnvVars...)
-	cmd.Stderr = os.Stderr
-	fmt.Println("Checking minikube status")
-	if err := cmd.Run(); err != nil {
-		_, ok := err.(*exec.ExitError)
-		c.Assert(ok, checker.True, check.Commentf("\"minikube status\" failed: %s", err))
+	err = startMinikube(onCI)
+	c.Assert(err, checker.IsNil, check.Commentf("failed to start minikube: %s", err))
 
-		// Start minikube.
-		// TODO: Move to function.
-
-		minikubeInitCmd := "minikube"
-		envVars := minikubeEnvVars
-		// Adapt minikube parameters if we run on the CI system.
-		if onCI {
-			// Bootstrap Kubernetes natively on the host system.
-			minikubeStartArgs = append(minikubeStartArgs, "--vm-driver=none")
-			// Native Kubernetes requires root privileges.
-			minikubeInitCmd = "sudo"
-			minikubeStartArgs = append([]string{"--preserve-env", "minikube"}, minikubeStartArgs...)
-			// Make sure root-owned files are moved to the proper location.
-			envVars = append(minikubeEnvVars[:], "CHANGE_MINIKUBE_NONE_USER=true")
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
-		defer cancel()
-
-		fmt.Println("Starting minikube")
-		err := runCommandContext(ctx, minikubeInitCmd, minikubeStartArgs, envVars)
-		c.Assert(err, checker.IsNil)
-		skipStop := os.Getenv(envVarFlagSkipVMCleanup) != ""
-		if !skipStop && !onCI {
-			s.stopAfterCompletion = true
-		}
+	skipStop := os.Getenv(envVarFlagSkipVMCleanup) != ""
+	if !skipStop && !onCI {
+		s.stopAfterCompletion = true
 	}
 
 	if !onCI {
@@ -469,6 +439,43 @@ func checkRequirements() error {
 
 	if len(missing) > 0 {
 		return fmt.Errorf("the following components must be installed: %s", strings.Join(missing, ", "))
+	}
+
+	return nil
+}
+
+func startMinikube(onCI bool) error {
+	// Check if minikube is already running.
+	cmd := exec.Command("minikube", "status")
+	// TODO: Use dynamically created profile name to avoid conflicts in CI
+	// situations unless enforced via custom env var.
+	cmd.Env = append(os.Environ(), minikubeEnvVars...)
+	cmd.Stderr = os.Stderr
+	fmt.Println("Checking minikube status")
+	if err := cmd.Run(); err != nil {
+		if _, ok := err.(*exec.ExitError); !ok {
+			return fmt.Errorf("failed to determine minikube status: %s", err)
+		}
+
+		// Start minikube.
+
+		minikubeInitCmd := "minikube"
+		envVars := minikubeEnvVars
+		// Adapt minikube parameters if we run on the CI system.
+		if onCI {
+			// Bootstrap Kubernetes natively on the host system.
+			minikubeStartArgs = append(minikubeStartArgs, "--vm-driver=none")
+			// Native Kubernetes requires root privileges.
+			minikubeInitCmd = "sudo"
+			minikubeStartArgs = append([]string{"--preserve-env", "minikube"}, minikubeStartArgs...)
+			// Make sure root-owned files are moved to the proper location.
+			envVars = append(minikubeEnvVars[:], "CHANGE_MINIKUBE_NONE_USER=true")
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
+		defer cancel()
+
+		fmt.Println("Starting minikube")
+		return runCommandContext(ctx, minikubeInitCmd, minikubeStartArgs, envVars)
 	}
 
 	return nil
