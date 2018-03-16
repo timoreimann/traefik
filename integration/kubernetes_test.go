@@ -222,8 +222,8 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	})
 	c.Assert(err, checker.IsNil)
 
-	fmt.Println("Wait another 15 seconds to be sure")
-	time.Sleep(15 * time.Second)
+	// fmt.Println("Wait another 15 seconds to be sure")
+	// time.Sleep(15 * time.Second)
 }
 
 func (s *KubernetesSuite) TearDownSuite(c *check.C) {
