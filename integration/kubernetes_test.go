@@ -74,18 +74,18 @@ func (km *kubeManifests) Apply(names ...string) error {
 			manifest = createAbsoluteManifestPath(manifest)
 		}
 
-		cmd := exec.Command(
-			"kubectl",
-			"--context",
-			minikubeProfile,
-			"--namespace",
-			traefikNamespace,
-			"apply",
-			"--filename",
-			manifest)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		err := runCommand("kubectl",
+			[]string{
+				"--context",
+				minikubeProfile,
+				"--namespace",
+				traefikNamespace,
+				"apply",
+				"--filename",
+				manifest,
+			},
+			nil)
+		if err != nil {
 			return fmt.Errorf("failed to apply manifest %s: %s", manifest, err)
 		}
 
@@ -102,19 +102,19 @@ func (km *kubeManifests) DeleteApplied() error {
 		fmt.Printf("Deleting %d manifest(s)\n", len(*km))
 	}
 	for _, manifest := range *km {
-		cmd := exec.Command(
-			"kubectl",
-			"--context",
-			minikubeProfile,
-			"--namespace",
-			traefikNamespace,
-			"delete",
-			"--grace-period=5",
-			"--filename",
-			manifest)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		err := runCommand("kubectl",
+			[]string{
+				"--context",
+				minikubeProfile,
+				"--namespace",
+				traefikNamespace,
+				"delete",
+				"--grace-period=5",
+				"--filename",
+				manifest,
+			},
+			nil)
+		if err != nil {
 			return fmt.Errorf("failed to delete manifest %s: %s", manifest, err)
 		}
 	}
@@ -125,15 +125,6 @@ func (km *kubeManifests) DeleteApplied() error {
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
-	// fmt.Println("df -h (on start):")
-	// cmd := exec.Command(
-	// 	"sudo",
-	// 	"df",
-	// 	"-h")
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
-	// cmd.Run()
-
 	err := checkRequirements()
 	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
 
@@ -168,12 +159,8 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
 		defer cancel()
 
-		cmd := exec.CommandContext(ctx, minikubeInitCmd, minikubeStartArgs...)
-		cmd.Env = append(os.Environ(), envVars...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 		fmt.Println("Starting minikube")
-		err := cmd.Run()
+		err := runCommandContext(ctx, minikubeInitCmd, minikubeStartArgs, envVars)
 		c.Assert(err, checker.IsNil)
 		skipStop := os.Getenv(envVarFlagSkipVMCleanup) != ""
 		if !skipStop && !onCI {
@@ -184,12 +171,13 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	if !onCI {
 		// Transfer current Traefik image into minikube. This is not necessary
 		// on the CI where we use the host-based none driver.
-		cmd := exec.Command("bash", "-c", fmt.Sprintf("docker save traefik:kube-test | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load)", minikubeProfile))
-		cmd.Env = append(os.Environ(), minikubeEnvVars...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 		fmt.Println("Transferring current Traefik image into minikube")
-		err = cmd.Run()
+		err := runCommand("bash",
+			[]string{
+				"-c",
+				fmt.Sprintf("docker save traefik:kube-test | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load)", minikubeProfile),
+			},
+			minikubeEnvVars)
 		c.Assert(err, checker.IsNil)
 	}
 
@@ -234,11 +222,10 @@ func (s *KubernetesSuite) TearDownSuite(c *check.C) {
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStopTimeout)
 		defer cancel()
 
-		cmd := exec.CommandContext(ctx, "minikube", "stop", "--logtostderr")
-		cmd.Env = append(os.Environ(), minikubeEnvVars...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err := cmd.Run()
+		err := runCommandContext(ctx,
+			"minikube",
+			[]string{"stop", "--logtostderr"},
+			nil)
 		c.Assert(err, checker.IsNil)
 	}
 }
@@ -300,52 +287,31 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 	defer func() {
 		if c.Failed() {
 			fmt.Println("Traefik pod description:")
-			cmd := exec.Command(
-				"kubectl",
-				"--context",
-				minikubeProfile,
-				"--namespace",
-				traefikNamespace,
-				"describe",
-				"pod",
-				"-l",
-				"k8s-app=traefik-ingress-lb")
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Run()
+			runCommand("kubectl",
+				[]string{
+					"kubectl",
+					"--context",
+					minikubeProfile,
+					"--namespace",
+					traefikNamespace,
+					"describe",
+					"pod",
+					"-l",
+					"k8s-app=traefik-ingress-lb",
+				},
+				nil)
 
 			fmt.Println("Traefik pod logs:")
-			cmd = exec.Command(
-				"kubectl",
-				"--context",
-				minikubeProfile,
-				"--namespace",
-				traefikNamespace,
-				"logs",
-				"deploy/traefik-ingress-controller")
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Run()
-
-			fmt.Println("Nodes description:")
-			cmd = exec.Command(
-				"kubectl",
-				"--context",
-				minikubeProfile,
-				"describe",
-				"nodes")
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Run()
-
-			// fmt.Println("df -h:")
-			// cmd = exec.Command(
-			// 	"sudo",
-			// 	"df",
-			// 	"-h")
-			// cmd.Stdout = os.Stdout
-			// cmd.Stderr = os.Stderr
-			// cmd.Run()
+			runCommand("kubectl",
+				[]string{
+					"--context",
+					minikubeProfile,
+					"--namespace",
+					traefikNamespace,
+					"logs",
+					"deploy/traefik-ingress-controller",
+				},
+				nil)
 		}
 	}()
 
@@ -506,6 +472,23 @@ func checkRequirements() error {
 	}
 
 	return nil
+}
+
+func runCommand(cmd string, args []string, extraEnvs []string) error {
+	return runCommandContext(nil, cmd, args, extraEnvs)
+}
+
+func runCommandContext(ctx context.Context, cmd string, args []string, extraEnvs []string) error {
+	var c *exec.Cmd
+	if ctx == nil {
+		c = exec.Command(cmd, args...)
+	} else {
+		c = exec.CommandContext(ctx, cmd, args...)
+	}
+	c.Env = append(c.Env, extraEnvs...)
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c.Run()
 }
 
 func getNameFromManifest(name, kind string) (string, error) {
