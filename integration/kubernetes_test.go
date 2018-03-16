@@ -57,11 +57,15 @@ var (
 	}
 )
 
+type KubeConnection struct {
+	client   *kubernetes.Clientset
+	nodeHost string
+	master   *url.URL
+}
+
 type KubernetesSuite struct {
 	BaseSuite
-	client              *kubernetes.Clientset
-	nodeHost            string
-	master              *url.URL
+	KubeConnection
 	stopAfterCompletion bool
 }
 
@@ -151,27 +155,9 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		c.Assert(err, checker.IsNil)
 	}
 
-	// TODO: Move to function.
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&clientcmd.ConfigOverrides{
-			CurrentContext: minikubeProfile,
-			Context: clientcmdapi.Context{
-				Namespace: traefikNamespace,
-			},
-		},
-	).ClientConfig()
+	conn, err := createKubeConnection()
 	c.Assert(err, checker.IsNil)
-
-	client, err := kubernetes.NewForConfig(config)
-	c.Assert(err, checker.IsNil)
-
-	master, err := url.Parse(config.Host)
-	c.Assert(err, checker.IsNil)
-
-	s.nodeHost = master.Hostname()
-	s.master = master
-	s.client = client
+	s.KubeConnection = *conn
 
 	fmt.Println("Waiting for cluster to become ready")
 	err = try.Do(1*time.Minute, func() error {
@@ -496,6 +482,37 @@ func runCommandContext(ctx context.Context, cmd string, args []string, extraEnvs
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	return c.Run()
+}
+
+func createKubeConnection() (conn *KubeConnection, err error) {
+	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ConfigOverrides{
+			CurrentContext: minikubeProfile,
+			Context: clientcmdapi.Context{
+				Namespace: traefikNamespace,
+			},
+		},
+	).ClientConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create configuration: %s", err)
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create clientset: %s", err)
+	}
+
+	master, err := url.Parse(config.Host)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse host URL %q: %s", config.Host, err)
+	}
+
+	return &KubeConnection{
+		nodeHost: master.Hostname(),
+		master:   master,
+		client:   client,
+	}, nil
 }
 
 func getNameFromManifest(name, kind string) (string, error) {
