@@ -173,8 +173,6 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 func (s *KubernetesSuite) TearDownSuite(c *check.C) {
 	if s.stopAfterCompletion {
 		fmt.Println("Stopping minikube as it was not running previously")
-		// TODO: Move to function.
-		// Stop minikube.
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStopTimeout)
 		defer cancel()
 
