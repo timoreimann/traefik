@@ -94,6 +94,8 @@ func (km *kubeManifests) Apply(names ...string) error {
 	return nil
 }
 
+// TODO: Probably remove since we want to delete the entire namespace after
+// each test.
 func (km *kubeManifests) DeleteApplied() error {
 	if len(*km) > 0 {
 		fmt.Printf("Deleting %d manifest(s)\n", len(*km))
@@ -138,6 +140,8 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 
 	// TODO: Move to function.
 	cmd := exec.Command("minikube", "status")
+	// TODO: Use dynamically created profile name to avoid conflicts in CI
+	// situations unless enforced via custom env var.
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
 	cmd.Stderr = os.Stderr
 	fmt.Println("Checking minikube status")
