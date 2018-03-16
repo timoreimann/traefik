@@ -36,6 +36,7 @@ const (
 	minikubeStartupTimeout    = 90 * time.Second
 	minikubeStopTimeout       = 30 * time.Second
 	examplesRelativeDirectory = "examples/k8s"
+	envVarFlagSkipVMCleanup   = "K8S_SKIP_VM_CLEANUP"
 )
 
 var (
@@ -174,7 +175,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		fmt.Println("Starting minikube")
 		err := cmd.Run()
 		c.Assert(err, checker.IsNil)
-		skipStop := os.Getenv("K8S_SKIP_VM_CLEANUP") == "true"
+		skipStop := os.Getenv(envVarFlagSkipVMCleanup) != ""
 		if !skipStop && !onCI {
 			s.stopAfterCompletion = true
 		}
