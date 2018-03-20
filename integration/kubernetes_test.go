@@ -27,7 +27,6 @@ import (
 )
 
 const (
-	minikubeProfile           = "traefik-integration-test"
 	traefikNamespace          = "traefik"
 	kubernetesVersion         = "v1.8.0"
 	minikubeStartupTimeout    = 90 * time.Second
@@ -35,7 +34,10 @@ const (
 	kubectlApplyTimeout       = 60 * time.Second
 	examplesRelativeDirectory = "examples/k8s"
 	envVarSkipVMCleanup       = "K8S_SKIP_VM_CLEANUP"
+	envVarMinikubeProfile     = "K8S_MINIKUBE_PROFILE"
 )
+
+var minikubeProfile string
 
 var (
 	minikubeStartArgs = []string{
@@ -52,7 +54,6 @@ var (
 		"MINIKUBE_WANTUPDATENOTIFICATION=false",
 		"MINIKUBE_WANTREPORTERRORPROMPT=false",
 		"MINIKUBE_WANTKUBECTLDOWNLOADMSG=false",
-		fmt.Sprintf("MINIKUBE_PROFILE=%s", minikubeProfile),
 	}
 )
 
@@ -71,6 +72,8 @@ type KubernetesSuite struct {
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	err := checkRequirements()
 	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
+
+	setMinikubeProfile()
 
 	onCI := os.Getenv("CI") != ""
 
@@ -271,11 +274,21 @@ func checkRequirements() error {
 	return nil
 }
 
+func setMinikubeProfile() {
+	profile := os.Getenv(envVarMinikubeProfile)
+	if profile == "" {
+		t := time.Now().UTC()
+		profile = fmt.Sprintf("traefik-integration-test-%d%02d%02dZ%02d%02d%02d",
+			t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+	}
+	fmt.Printf("Using minikube profile %q\n", profile)
+	minikubeProfile = profile
+	minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_PROFILE=%s", minikubeProfile))
+}
+
 func startMinikube(onCI bool) error {
 	// Check if minikube is already running.
 	cmd := exec.Command("minikube", "status")
-	// TODO: Use dynamically created profile name to avoid conflicts in CI
-	// situations unless enforced via custom env var.
 	cmd.Env = append(os.Environ(), minikubeEnvVars...)
 	cmd.Stderr = os.Stderr
 	fmt.Println("Checking minikube status")
