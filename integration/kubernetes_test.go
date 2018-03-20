@@ -71,68 +71,6 @@ type KubernetesSuite struct {
 	stopAfterCompletion bool
 }
 
-type kubeManifests []string
-
-func (km *kubeManifests) Apply(names ...string) error {
-	for _, name := range names {
-		manifest := name
-		if !path.IsAbs(manifest) {
-			manifest = createAbsoluteManifestPath(manifest)
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), kubectlApplyTimeout)
-		defer cancel()
-		err := runCommandContext(ctx,
-			"kubectl",
-			[]string{
-				"--context",
-				minikubeProfile,
-				"--namespace",
-				traefikNamespace,
-				"apply",
-				"--filename",
-				manifest,
-			},
-			nil)
-		if err != nil {
-			return fmt.Errorf("failed to apply manifest %s: %s", manifest, err)
-		}
-
-		*km = append(*km, manifest)
-	}
-
-	return nil
-}
-
-// TODO: Probably remove since we want to delete the entire namespace after
-// each test.
-func (km *kubeManifests) DeleteApplied() error {
-	if len(*km) > 0 {
-		fmt.Printf("Deleting %d manifest(s)\n", len(*km))
-	}
-	for _, manifest := range *km {
-		err := runCommand("kubectl",
-			[]string{
-				"--context",
-				minikubeProfile,
-				"--namespace",
-				traefikNamespace,
-				"delete",
-				"--grace-period=5",
-				"--filename",
-				manifest,
-			},
-			nil)
-		if err != nil {
-			return fmt.Errorf("failed to delete manifest %s: %s", manifest, err)
-		}
-	}
-
-	// TODO: Can tests finish before all objects are truly deleted? Do we need to poll for assured deletion?
-
-	return nil
-}
-
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	err := checkRequirements()
 	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
@@ -233,17 +171,11 @@ func (s *KubernetesSuite) TestDaemonSetManifestExamples(c *check.C) {
 }
 
 func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest string) {
-	manifests := kubeManifests{}
-	// defer func() {
-	// 	err := manifests.DeleteApplied()
-	// 	c.Assert(err, checker.IsNil)
-	// }()
-
 	// Use Deployment manifest referencing current traefik binary.
 	patchedDeployment := createAbsolutePath(fmt.Sprintf("integration/resources/k8s/%s.test.yaml", workloadManifest))
 
 	// Validate Traefik is reachable.
-	err := manifests.Apply(
+	err := Apply(
 		"traefik-rbac.yaml",
 		patchedDeployment,
 	)
@@ -299,7 +231,7 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 	c.Assert(err, checker.IsNil, check.Commentf("traefik access"))
 
 	// Validate Traefik UI is reachable.
-	err = manifests.Apply(
+	err = Apply(
 		"ui.yaml",
 	)
 	c.Assert(err, checker.IsNil)
@@ -310,7 +242,7 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 	c.Assert(err, checker.IsNil, check.Commentf("traefik UI access (req: %s host: %s headers: %s)", *req, req.Host, req.Header))
 
 	// Validate third-party service is routable through Traefik.
-	err = manifests.Apply(
+	err = Apply(
 		"cheese-deployments.yaml",
 		"cheese-services.yaml",
 		"cheese-ingress.yaml",
@@ -521,6 +453,35 @@ func createKubeConnection() (conn *KubeConnection, err error) {
 		master:   master,
 		client:   client,
 	}, nil
+}
+
+func Apply(names ...string) error {
+	for _, name := range names {
+		manifest := name
+		if !path.IsAbs(manifest) {
+			manifest = createAbsoluteManifestPath(manifest)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), kubectlApplyTimeout)
+		defer cancel()
+		err := runCommandContext(ctx,
+			"kubectl",
+			[]string{
+				"--context",
+				minikubeProfile,
+				"--namespace",
+				traefikNamespace,
+				"apply",
+				"--filename",
+				manifest,
+			},
+			nil)
+		if err != nil {
+			return fmt.Errorf("failed to apply manifest %s: %s", manifest, err)
+		}
+	}
+
+	return nil
 }
 
 func getNameFromManifest(name, kind string) (string, error) {
