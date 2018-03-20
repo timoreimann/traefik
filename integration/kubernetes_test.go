@@ -13,16 +13,13 @@ import (
 	"time"
 
 	"github.com/containous/traefik/integration/try"
-	"github.com/containous/traefik/provider/label"
 	"github.com/containous/traefik/testhelpers"
 	"github.com/go-check/check"
 	checker "github.com/vdemeester/shakers"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -255,102 +252,6 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 		err = try.Request(req, 25*time.Second, try.StatusCodeIs(http.StatusOK))
 		c.Assert(err, checker.IsNil, check.Commentf("service %q access", svc))
 	}
-}
-
-func (s *KubernetesSuite) TestBasic(c *check.C) {
-	// Start Traefik.
-	file := s.adaptFile(c, "fixtures/kubernetes/simple.toml", struct {
-		MasterURL string
-	}{s.master.String()})
-	defer os.Remove(file)
-	cmd, display := s.traefikCmd(withConfigFile(file))
-	defer display(c)
-	err := cmd.Start()
-	c.Assert(err, checker.IsNil)
-	defer cmd.Process.Kill()
-
-	// pods, err := client.CoreV1().Pods(metav1.NamespaceDefault).List(corev1.ListOptions{})
-	// c.Assert(err, checker.IsNil)
-
-	// fmt.Printf("Got %d pod(s) in default namespace\n", len(pods.Items))
-	// for i, pod := range pods.Items {
-	// 	fmt.Printf("#%d: %s\n", i+1, pod.ObjectMeta.Name)
-	// }
-
-	_, err = s.client.ExtensionsV1beta1().Ingresses(metav1.NamespaceDefault).Create(
-		&extensionsv1beta1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "whoami",
-				Annotations: map[string]string{
-					label.TraefikFrontendRuleType: "Path",
-				},
-			},
-			Spec: extensionsv1beta1.IngressSpec{
-				Rules: []extensionsv1beta1.IngressRule{
-					extensionsv1beta1.IngressRule{
-						IngressRuleValue: extensionsv1beta1.IngressRuleValue{
-							HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
-								Paths: []extensionsv1beta1.HTTPIngressPath{
-									extensionsv1beta1.HTTPIngressPath{
-										Path: "/service",
-										Backend: extensionsv1beta1.IngressBackend{
-											ServiceName: "whoami",
-											ServicePort: intstr.FromInt(8080),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	)
-	c.Assert(err, checker.IsNil)
-
-	_, err = s.client.CoreV1().Services(metav1.NamespaceDefault).Create(
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "whoami",
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{
-					corev1.ServicePort{
-						Port:       int32(8080),
-						TargetPort: intstr.FromInt(80),
-					},
-				},
-				Selector: map[string]string{
-					"app": "whoami",
-				},
-			},
-		},
-	)
-	c.Assert(err, checker.IsNil)
-
-	_, err = s.client.CoreV1().Pods(metav1.NamespaceDefault).Create(
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "whoami",
-				Labels: map[string]string{
-					"app": "whoami",
-				},
-			},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					corev1.Container{
-						Image: "emilevauge/whoami",
-						Name:  "whoami",
-					},
-				},
-			},
-		},
-	)
-	c.Assert(err, checker.IsNil)
-
-	// Query application via Traefik.
-	err = try.GetRequest("http://127.0.0.1:8000/service", 45*time.Second, try.StatusCodeIs(http.StatusOK))
-	c.Assert(err, checker.IsNil)
 }
 
 func checkRequirements() error {
