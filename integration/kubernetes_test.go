@@ -88,8 +88,11 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	if !onCI {
 		// Transfer current Traefik image into minikube. This is not necessary
 		// on the CI where we use the host-based none driver.
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
 		fmt.Println("Transferring current Traefik image into minikube")
-		err := runCommand("bash",
+		err := runCommandContext(ctx,
+			"bash",
 			[]string{
 				"-c",
 				fmt.Sprintf("docker save containous/traefik:latest | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load && docker tag containous/traefik:latest traefik:kube-test)", minikubeProfile),
