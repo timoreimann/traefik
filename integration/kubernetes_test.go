@@ -92,12 +92,12 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		err := runCommand("bash",
 			[]string{
 				"-c",
-				fmt.Sprintf("docker save containous/traefik | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load && docker tag containous/traefik traefik:kube-test)", minikubeProfile),
+				fmt.Sprintf("docker save containous/traefik:latest | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load && docker tag containous/traefik:latest traefik:kube-test)", minikubeProfile),
 			},
 			minikubeEnvVars)
 		c.Assert(err, checker.IsNil)
 	} else {
-		err := runCommand("docker", []string{"tag", "containous/traefik", "traefik:kube-test"}, nil)
+		err := runCommand("docker", []string{"tag", "containous/traefik:latest", "traefik:kube-test"}, nil)
 		c.Assert(err, checker.IsNil)
 	}
 
