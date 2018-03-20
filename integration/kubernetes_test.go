@@ -190,8 +190,10 @@ func (s *KubernetesSuite) SetUpTest(c *check.C) {
 	// First, delete any left-overs from previous tests.
 	policy := metav1.DeletePropagationForeground
 	fmt.Printf("Deleting any left-overs of test namespace %q\n", traefikNamespace)
+	grace := int64(0)
 	err := s.client.CoreV1().Namespaces().Delete(traefikNamespace, &metav1.DeleteOptions{
-		PropagationPolicy: &policy,
+		GracePeriodSeconds: &grace,
+		PropagationPolicy:  &policy,
 	})
 	// We ignore conflicts as they indicate that a deletion is already in
 	// progress.
