@@ -77,7 +77,7 @@ test: build ## run the unit and integration tests
 test-unit: build ## run the unit tests
 	$(DOCKER_RUN_TRAEFIK) ./script/make.sh generate test-unit
 
-test-integration: build ## run the integration tests
+test-integration: image-dirty ## run the integration tests
 	$(DOCKER_RUN_TRAEFIK) ./script/make.sh generate binary test-integration
 	TEST_HOST=1 ./script/make.sh test-integration
 
@@ -101,15 +101,6 @@ image-dirty: binary ## build a docker traefik image
 
 image: clear-static binary ## clean up static directory and build a docker traefik image
 	docker build -t $(TRAEFIK_IMAGE) .
-
-patch-image:
-	@set -o errexit; \
-	CID=$$(docker run -d containous/traefik:experimental | tail -n 1); \
-	docker cp dist/traefik $$CID:/traefik; \
-	docker commit $$CID traefik:kube-test 2>&1 > /dev/null; \
-	docker rm -f $$CID 2>&1 > /dev/null; \
-	sed 's/image: [^\s]\{1,\}/image: traefik:kube-test/' examples/k8s/traefik-deployment.yaml > integration/resources/traefik-deployment.test.yaml; \
-	sed 's/image: [^\s]\{1,\}/image: traefik:kube-test/' examples/k8s/traefik-ds.yaml > integration/resources/traefik-ds.test.yaml; \
 
 docs: docs-image
 	docker run  $(DOCKER_RUN_DOC_OPTS) $(TRAEFIK_DOC_IMAGE) mkdocs serve
@@ -150,6 +141,12 @@ dep-ensure:
 
 dep-prune:
 	./script/prune-dep.sh
+
+kube-test-manifests:
+	@set -o errexit; \
+	mkdir integration/resources/k8s; \
+	sed 's/image: [^\s]\{1,\}/image: traefik:kube-test/' examples/k8s/traefik-deployment.yaml > integration/resources/k8s/traefik-deployment.test.yaml; \
+	sed 's/image: [^\s]\{1,\}/image: traefik:kube-test/' examples/k8s/traefik-ds.yaml > integration/resources/k8s/traefik-ds.test.yaml; \
 
 kube-test-deps:
 	./script/get-kube-test-deps $(MINIKUBE_VERSION) $(KUBE_VERSION)

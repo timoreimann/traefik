@@ -12,3 +12,4 @@
 *.exe
 .DS_Store
 /examples/acme/acme.json
+/integration/resources/k8s

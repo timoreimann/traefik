@@ -154,7 +154,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		err := runCommand("bash",
 			[]string{
 				"-c",
-				fmt.Sprintf("docker save traefik:kube-test | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load)", minikubeProfile),
+				fmt.Sprintf("docker save containous/traefik | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load && docker tag containous/traefik traefik:kube-test)", minikubeProfile),
 			},
 			minikubeEnvVars)
 		c.Assert(err, checker.IsNil)
@@ -237,7 +237,7 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 	// }()
 
 	// Use Deployment manifest referencing current traefik binary.
-	patchedDeployment := createAbsolutePath(fmt.Sprintf("integration/resources/%s.test.yaml", workloadManifest))
+	patchedDeployment := createAbsolutePath(fmt.Sprintf("integration/resources/k8s/%s.test.yaml", workloadManifest))
 
 	// Validate Traefik is reachable.
 	err := manifests.Apply(
