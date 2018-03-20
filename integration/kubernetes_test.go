@@ -158,6 +158,9 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 			},
 			minikubeEnvVars)
 		c.Assert(err, checker.IsNil)
+	} else {
+		err := runCommand("docker", []string{"tag", "containous/traefik", "traefik:kube-test"}, nil)
+		c.Assert(err, checker.IsNil)
 	}
 
 	conn, err := createKubeConnection()
