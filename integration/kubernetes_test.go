@@ -73,7 +73,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	err := checkRequirements()
 	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
 
-	setMinikubeProfile()
+	setMinikubeParams()
 
 	onCI := os.Getenv("CI") != ""
 
@@ -276,7 +276,7 @@ func checkRequirements() error {
 	return nil
 }
 
-func setMinikubeProfile() {
+func setMinikubeParams() {
 	profile := os.Getenv(envVarMinikubeProfile)
 	if profile == "" {
 		t := time.Now().UTC()
