@@ -311,11 +311,23 @@ func startMinikube(onCI bool) error {
 			// Make sure root-owned files are moved to the proper location.
 			envVars = append(minikubeEnvVars[:], "CHANGE_MINIKUBE_NONE_USER=true")
 		}
+
+		vBoxManagePath, err := exec.LookPath("VBoxManage")
+		if err != nil {
+			return fmt.Errorf("cannot find VBoxManage path: %s", err)
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
 		defer cancel()
-
 		fmt.Println("Starting minikube")
-		return runCommandContext(ctx, minikubeInitCmd, minikubeStartArgs, envVars)
+		return runCommandContext(ctx,
+			minikubeInitCmd,
+			minikubeStartArgs,
+			append(
+				envVars,
+				fmt.Sprintf("PATH=%s", path.Dir(vBoxManagePath)),
+			),
+		)
 	}
 
 	return nil
