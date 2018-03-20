@@ -286,6 +286,12 @@ func setMinikubeProfile() {
 	fmt.Printf("Using minikube profile %q\n", profile)
 	minikubeProfile = profile
 	minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_PROFILE=%s", minikubeProfile))
+
+	minikubeHome := path.Join("/", os.Getenv("HOME"), ".minikube")
+	if _, err := os.Stat(minikubeHome); err == nil {
+		fmt.Printf("Using minikube home %q\n", minikubeHome)
+		minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_HOME=%s", minikubeHome))
+	}
 }
 
 func startMinikube(onCI bool) error {
@@ -328,6 +334,7 @@ func startMinikube(onCI bool) error {
 			append(
 				envVars,
 				fmt.Sprintf("PATH=%s", path.Dir(vBoxManagePath)),
+				fmt.Sprintf("$HOME=%s", os.Getenv("HOME")),
 			),
 		)
 	}
