@@ -53,6 +53,7 @@ var (
 	minikubeEnvVars = []string{
 		"MINIKUBE_WANTUPDATENOTIFICATION=false",
 		"MINIKUBE_WANTREPORTERRORPROMPT=false",
+		"MINIKUBE_WANTKUBECTLDOWNLOADMSG=false",
 		fmt.Sprintf("MINIKUBE_PROFILE=%s", minikubeProfile),
 	}
 )
