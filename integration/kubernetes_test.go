@@ -188,7 +188,6 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 			fmt.Println("Traefik pod description:")
 			runCommand("kubectl",
 				[]string{
-					"kubectl",
 					"--context",
 					minikubeProfile,
 					"--namespace",
