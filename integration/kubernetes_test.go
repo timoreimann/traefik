@@ -35,6 +35,7 @@ const (
 	kubernetesVersion         = "v1.8.0"
 	minikubeStartupTimeout    = 90 * time.Second
 	minikubeStopTimeout       = 30 * time.Second
+	kubectlApplyTimeout       = 60 * time.Second
 	examplesRelativeDirectory = "examples/k8s"
 	envVarFlagSkipVMCleanup   = "K8S_SKIP_VM_CLEANUP"
 )
@@ -79,7 +80,10 @@ func (km *kubeManifests) Apply(names ...string) error {
 			manifest = createAbsoluteManifestPath(manifest)
 		}
 
-		err := runCommand("kubectl",
+		ctx, cancel := context.WithTimeout(context.Background(), kubectlApplyTimeout)
+		defer cancel()
+		err := runCommandContext(ctx,
+			"kubectl",
 			[]string{
 				"--context",
 				minikubeProfile,
