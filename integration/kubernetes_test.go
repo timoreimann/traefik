@@ -354,6 +354,7 @@ func runCommand(cmd string, args []string, extraEnvs []string) error {
 }
 
 func runCommandContext(ctx context.Context, cmd string, args []string, extraEnvs []string) error {
+	fmt.Printf("Starting: %s %s (env vars: %#+v)\n", cmd, args, extraEnvs)
 	var c *exec.Cmd
 	if ctx == nil {
 		c = exec.Command(cmd, args...)
