@@ -73,7 +73,8 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	err := checkRequirements()
 	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
 
-	setMinikubeParams()
+	err = setMinikubeParams()
+	c.Assert(err, checker.IsNil, check.Commentf("failed to set minikube parameters: %s", err))
 
 	onCI := os.Getenv("CI") != ""
 
@@ -276,7 +277,7 @@ func checkRequirements() error {
 	return nil
 }
 
-func setMinikubeParams() {
+func setMinikubeParams() error {
 	profile := os.Getenv(envVarMinikubeProfile)
 	if profile == "" {
 		t := time.Now().UTC()
@@ -292,6 +293,14 @@ func setMinikubeParams() {
 		fmt.Printf("Using minikube home %q\n", minikubeHome)
 		minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_HOME=%s", minikubeHome))
 	}
+
+	vBoxManagePath, err := exec.LookPath("VBoxManage")
+	if err != nil {
+		return fmt.Errorf("cannot find VBoxManage path: %s", err)
+	}
+	minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("PATH=%s", path.Dir(vBoxManagePath)))
+
+	return nil
 }
 
 func startMinikube(onCI bool) error {
@@ -320,11 +329,6 @@ func startMinikube(onCI bool) error {
 			envVars = append(minikubeEnvVars[:], "CHANGE_MINIKUBE_NONE_USER=true")
 		}
 
-		vBoxManagePath, err := exec.LookPath("VBoxManage")
-		if err != nil {
-			return fmt.Errorf("cannot find VBoxManage path: %s", err)
-		}
-
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
 		defer cancel()
 		fmt.Println("Starting minikube")
@@ -333,7 +337,6 @@ func startMinikube(onCI bool) error {
 			minikubeStartArgs,
 			append(
 				envVars,
-				fmt.Sprintf("PATH=%s", path.Dir(vBoxManagePath)),
 				fmt.Sprintf("$HOME=%s", os.Getenv("HOME")),
 			),
 		)
