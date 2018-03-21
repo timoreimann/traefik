@@ -47,7 +47,7 @@ var (
 		"--extra-config=apiserver.Authorization.Mode=RBAC",
 		"--keep-context",
 		"--disk-size=15g",
-		"--cache-images=false",
+		// "--cache-images=false",
 	}
 
 	minikubeEnvVars = []string{
