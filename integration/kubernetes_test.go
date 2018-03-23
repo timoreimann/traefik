@@ -96,7 +96,7 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 			"bash",
 			[]string{
 				"-c",
-				fmt.Sprintf("docker save containous/traefik:latest | (eval $(minikube docker-env --alsologtostderr -p %s) && docker load && docker tag containous/traefik:latest traefik:kube-test)", minikubeProfile),
+				fmt.Sprintf("docker save containous/traefik:latest | (eval $(minikube docker-env --logtostderr -p %s) && docker load && docker tag containous/traefik:latest traefik:kube-test)", minikubeProfile),
 			},
 			minikubeEnvVars)
 		c.Assert(err, checker.IsNil)
