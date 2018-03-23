@@ -37,7 +37,10 @@ const (
 	envVarMinikubeProfile     = "K8S_MINIKUBE_PROFILE"
 )
 
-var minikubeProfile string
+var (
+	minikubeProfile string
+	kubeconfig      string
+)
 
 var (
 	minikubeStartArgs = []string{
@@ -132,6 +135,9 @@ func (s *KubernetesSuite) TearDownSuite(c *check.C) {
 			[]string{"stop", "--logtostderr"},
 			nil)
 		c.Assert(err, checker.IsNil)
+
+		err = runKubectl("config", "delete-context", minikubeProfile)
+		c.Assert(err, checker.IsNil)
 	}
 }
 
@@ -188,30 +194,10 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 	defer func() {
 		if c.Failed() {
 			fmt.Println("Traefik pod description:")
-			runCommand("kubectl",
-				[]string{
-					"--context",
-					minikubeProfile,
-					"--namespace",
-					traefikNamespace,
-					"describe",
-					"pod",
-					"-l",
-					"k8s-app=traefik-ingress-lb",
-				},
-				nil)
+			runKubectl("describe", "pod", "-l", "k8s-app=traefik-ingress-lb")
 
 			fmt.Println("Traefik pod logs:")
-			runCommand("kubectl",
-				[]string{
-					"--context",
-					minikubeProfile,
-					"--namespace",
-					traefikNamespace,
-					"logs",
-					"deploy/traefik-ingress-controller",
-				},
-				nil)
+			runKubectl("logs", "deploy/traefik-ingress-controller")
 		}
 	}()
 
@@ -295,6 +281,13 @@ func setMinikubeParams() error {
 		minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_HOME=%s", minikubeHome))
 	}
 
+	kubeCfg := path.Join("/", os.Getenv("HOME"), ".kube", "config")
+	if _, err := os.Stat(kubeCfg); err == nil {
+		fmt.Printf("Using kubeconfig %q\n", kubeCfg)
+		minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("KUBECONFIG=%s", kubeCfg))
+		kubeconfig = kubeCfg
+	}
+
 	vBoxManagePath, err := exec.LookPath("VBoxManage")
 	if err != nil {
 		return fmt.Errorf("cannot find VBoxManage path: %s", err)
@@ -365,6 +358,29 @@ func runCommandContext(ctx context.Context, cmd string, args []string, extraEnvs
 	return c.Run()
 }
 
+func runKubectl(arguments ...string) error {
+	var args []string
+	if kubeconfig != "" {
+		args = []string{"--kubeconfig", kubeconfig}
+	}
+	args = append(args, arguments...)
+
+	ctx, cancel := context.WithTimeout(context.Background(), kubectlApplyTimeout)
+	defer cancel()
+	return runCommandContext(ctx,
+		"kubectl",
+		append(
+			[]string{
+				"--context",
+				minikubeProfile,
+				"--namespace",
+				traefikNamespace,
+			},
+			args...,
+		),
+		nil)
+}
+
 func createKubeConnection() (conn *KubeConnection, err error) {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		clientcmd.NewDefaultClientConfigLoadingRules(),
@@ -403,21 +419,7 @@ func Apply(names ...string) error {
 			manifest = createAbsoluteManifestPath(manifest)
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), kubectlApplyTimeout)
-		defer cancel()
-		err := runCommandContext(ctx,
-			"kubectl",
-			[]string{
-				"--context",
-				minikubeProfile,
-				"--namespace",
-				traefikNamespace,
-				"apply",
-				"--filename",
-				manifest,
-			},
-			nil)
-		if err != nil {
+		if err := runKubectl("apply", "--filename", manifest); err != nil {
 			return fmt.Errorf("failed to apply manifest %s: %s", manifest, err)
 		}
 	}
