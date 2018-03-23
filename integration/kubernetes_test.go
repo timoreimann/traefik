@@ -340,10 +340,7 @@ func startMinikube(onCI bool) error {
 			// 	minikubeStartArgs,
 			// 	"-v=10",
 			// ),
-			append(
-				envVars,
-				fmt.Sprintf("$HOME=%s", os.Getenv("HOME")),
-			),
+			envVars,
 		)
 	}
 
