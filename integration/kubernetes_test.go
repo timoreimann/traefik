@@ -98,7 +98,8 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 				"-c",
 				fmt.Sprintf("docker save containous/traefik:latest | (eval $(minikube docker-env --logtostderr -p %s) && docker load && docker tag containous/traefik:latest traefik:kube-test)", minikubeProfile),
 			},
-			minikubeEnvVars)
+			// SHELL needed by "minikube docker-env".
+			append(minikubeEnvVars, "SHELL=/bin/bash"))
 		c.Assert(err, checker.IsNil)
 	} else {
 		err := runCommand("docker", []string{"tag", "containous/traefik:latest", "traefik:kube-test"}, nil)
