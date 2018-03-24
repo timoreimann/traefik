@@ -162,7 +162,7 @@ func (s *KubernetesSuite) SetUpTest(c *check.C) {
 	// Retry creating because the preceding Delete operation takes a while to
 	// complete, manifesting in 409 ("AlreadyExists") errors.
 	fmt.Printf("Creating test namespace %q\n", traefikNamespace)
-	err = try.Do(90*time.Second, func() error {
+	err = try.Do(2*time.Minute, func() error {
 		_, err := s.client.CoreV1().Namespaces().Create(&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: traefikNamespace,
