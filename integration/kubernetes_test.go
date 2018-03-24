@@ -29,11 +29,11 @@ import (
 const (
 	traefikNamespace          = "traefik"
 	kubernetesVersion         = "v1.8.0"
-	minikubeStartupTimeout    = 90 * time.Second
-	minikubeStopTimeout       = 30 * time.Second
+	minikubeStartupTimeout    = 2 * time.Minute
+	minikubeDeleteTimeout     = 30 * time.Second
 	kubectlApplyTimeout       = 60 * time.Second
 	examplesRelativeDirectory = "examples/k8s"
-	envVarSkipVMCleanup       = "K8S_SKIP_VM_CLEANUP"
+	envVarSkipVMCleanup       = "K8S_SKIP_CLEANUP"
 	envVarMinikubeProfile     = "K8S_MINIKUBE_PROFILE"
 )
 
@@ -69,7 +69,7 @@ type KubeConnection struct {
 type KubernetesSuite struct {
 	BaseSuite
 	KubeConnection
-	stopAfterCompletion bool
+	cleanupAfterCompletion bool
 }
 
 func (s *KubernetesSuite) SetUpSuite(c *check.C) {
@@ -84,9 +84,9 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	err = startMinikube(onCI)
 	c.Assert(err, checker.IsNil, check.Commentf("failed to start minikube: %s", err))
 
-	skipStop := os.Getenv(envVarSkipVMCleanup) != ""
-	if !skipStop && !onCI {
-		s.stopAfterCompletion = true
+	skipCleanup := os.Getenv(envVarSkipVMCleanup) != ""
+	if !skipCleanup && !onCI {
+		s.cleanupAfterCompletion = true
 	}
 
 	if !onCI {
@@ -125,17 +125,18 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 }
 
 func (s *KubernetesSuite) TearDownSuite(c *check.C) {
-	if s.stopAfterCompletion {
-		fmt.Println("Stopping minikube as it was not running previously")
-		ctx, cancel := context.WithTimeout(context.Background(), minikubeStopTimeout)
+	if s.cleanupAfterCompletion {
+		fmt.Printf("Deleting minikube profile %q\n", minikubeProfile)
+		ctx, cancel := context.WithTimeout(context.Background(), minikubeDeleteTimeout)
 		defer cancel()
 
 		err := runCommandContext(ctx,
 			"minikube",
-			[]string{"stop", "--logtostderr"},
-			nil)
+			[]string{"delete", "--logtostderr"},
+			minikubeEnvVars)
 		c.Assert(err, checker.IsNil)
 
+		fmt.Printf("Deleting kubectl context %q\n", minikubeProfile)
 		err = runKubectl("config", "delete-context", minikubeProfile)
 		c.Assert(err, checker.IsNil)
 	}
