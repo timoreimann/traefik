@@ -275,8 +275,8 @@ func setMinikubeParams() error {
 	minikubeProfile = profile
 	minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_PROFILE=%s", minikubeProfile))
 
-	minikubeHome := path.Join("/", os.Getenv("HOME"), ".minikube")
-	if _, err := os.Stat(minikubeHome); err == nil {
+	minikubeHome := path.Join("/", os.Getenv("HOME"))
+	if _, err := os.Stat(path.Join(minikubeHome, ".minikube")); err == nil {
 		fmt.Printf("Using minikube home %q\n", minikubeHome)
 		minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_HOME=%s", minikubeHome))
 	}
