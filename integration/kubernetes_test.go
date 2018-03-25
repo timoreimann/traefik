@@ -94,17 +94,21 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
 		fmt.Println("Transferring current Traefik image into minikube")
-		err := runCommandContext(ctx,
+		err := runCommand(
 			"bash",
 			[]string{
 				"-c",
 				fmt.Sprintf("docker save containous/traefik:latest | (eval $(minikube docker-env --logtostderr -p %s) && docker load && docker tag containous/traefik:latest traefik:kube-test)", minikubeProfile),
 			},
-			// SHELL needed by "minikube docker-env".
-			append(minikubeEnvVars, "SHELL=/bin/bash"))
+			commandParams{
+				ctx: ctx,
+				// SHELL needed by "minikube docker-env".
+				envs: append(minikubeEnvVars, "SHELL=/bin/bash"),
+			},
+		)
 		c.Assert(err, checker.IsNil)
 	} else {
-		err := runCommand("docker", []string{"tag", "containous/traefik:latest", "traefik:kube-test"}, nil)
+		err := runCommand("docker", []string{"tag", "containous/traefik:latest", "traefik:kube-test"}, commandParams{})
 		c.Assert(err, checker.IsNil)
 	}
 
@@ -129,10 +133,12 @@ func (s *KubernetesSuite) TearDownSuite(c *check.C) {
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeDeleteTimeout)
 		defer cancel()
 
-		err := runCommandContext(ctx,
-			"minikube",
+		err := runCommand("minikube",
 			[]string{"delete", "--logtostderr"},
-			minikubeEnvVars)
+			commandParams{
+				ctx:  ctx,
+				envs: minikubeEnvVars,
+			})
 		c.Assert(err, checker.IsNil)
 
 		fmt.Printf("Deleting kubectl context %q\n", minikubeProfile)
@@ -250,8 +256,11 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 func checkRequirements() error {
 	// TODO: Check for minimum versions.
 	var missing []string
-	if _, err := exec.LookPath("minikube"); err != nil {
+	minikubePath, err := exec.LookPath("minikube")
+	if err != nil {
 		missing = append(missing, "minikube")
+	} else {
+		runCommand(minikubePath, []string{"version"}, commandParams{})
 	}
 	if _, err := exec.LookPath("kubectl"); err != nil {
 		missing = append(missing, "kubectl")
@@ -326,34 +335,42 @@ func startMinikube(onCI bool) error {
 		ctx, cancel := context.WithTimeout(context.Background(), minikubeStartupTimeout)
 		defer cancel()
 		fmt.Println("Starting minikube")
-		return runCommandContext(ctx,
-			minikubeInitCmd,
+		return runCommand(minikubeInitCmd,
 			minikubeStartArgs,
 			// append(
 			// 	minikubeStartArgs,
 			// 	"-v=10",
 			// ),
-			envVars,
+			commandParams{
+				ctx:  ctx,
+				envs: envVars,
+			},
 		)
 	}
 
 	return nil
 }
 
-func runCommand(cmd string, args []string, extraEnvs []string) error {
-	return runCommandContext(nil, cmd, args, extraEnvs)
+type commandParams struct {
+	ctx    context.Context
+	envs   []string
+	stdout io.Writer
 }
 
-func runCommandContext(ctx context.Context, cmd string, args []string, extraEnvs []string) error {
-	fmt.Printf("Starting: %s %s (env vars: %#+v)\n", cmd, args, extraEnvs)
+func runCommand(cmd string, args []string, params commandParams) error {
+	fmt.Printf("Starting: %s %s (env vars: %#+v)\n", cmd, args, params.envs)
 	var c *exec.Cmd
-	if ctx == nil {
+	if params.ctx == nil {
 		c = exec.Command(cmd, args...)
 	} else {
-		c = exec.CommandContext(ctx, cmd, args...)
+		c = exec.CommandContext(params.ctx, cmd, args...)
 	}
-	c.Env = append(c.Env, extraEnvs...)
-	c.Stdout = os.Stdout
+	c.Env = append(c.Env, params.envs...)
+
+	if params.stdout == nil {
+		params.stdout = os.Stdout
+	}
+	c.Stdout = params.stdout
 	c.Stderr = os.Stderr
 	return c.Run()
 }
@@ -367,8 +384,7 @@ func runKubectl(arguments ...string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), kubectlApplyTimeout)
 	defer cancel()
-	return runCommandContext(ctx,
-		"kubectl",
+	return runCommand("kubectl",
 		append(
 			[]string{
 				"--context",
@@ -378,7 +394,7 @@ func runKubectl(arguments ...string) error {
 			},
 			args...,
 		),
-		nil)
+		commandParams{ctx: ctx})
 }
 
 func createKubeConnection() (conn *KubeConnection, err error) {
