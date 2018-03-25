@@ -1,6 +1,9 @@
 package integration
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver"
 	"github.com/containous/traefik/integration/try"
 	"github.com/containous/traefik/testhelpers"
 	"github.com/go-check/check"
@@ -29,6 +33,8 @@ import (
 const (
 	traefikNamespace          = "traefik"
 	kubernetesVersion         = "v1.8.0"
+	minVersionMinikube        = "v0.25.0"
+	minVersionKubectl         = "v1.7.0"
 	minikubeStartupTimeout    = 2 * time.Minute
 	minikubeDeleteTimeout     = 30 * time.Second
 	kubectlApplyTimeout       = 60 * time.Second
@@ -38,8 +44,10 @@ const (
 )
 
 var (
-	minikubeProfile string
-	kubeconfig      string
+	versionConstraintMinikube *semver.Constraints
+	versionConstraintKubectl  *semver.Constraints
+	minikubeProfile           string
+	kubeconfig                string
 )
 
 var (
@@ -59,6 +67,28 @@ var (
 	}
 )
 
+type versionMismatch struct {
+	component string
+	got       string
+	min       string
+}
+
+type errorRequirementMissing string
+
+func (e errorRequirementMissing) Error() string {
+	return fmt.Sprintf("component %q is missing", e)
+}
+
+type errorRequirementVersionMismatch struct {
+	component string
+	got       string
+	min       string
+}
+
+func (e errorRequirementVersionMismatch) Error() string {
+	return fmt.Sprintf("component %q does not satisfy minimum version requirement: %s < %s", e.component, e.got, e.min)
+}
+
 type KubeConnection struct {
 	client   *kubernetes.Clientset
 	nodeHost string
@@ -71,11 +101,26 @@ type KubernetesSuite struct {
 	cleanupAfterCompletion bool
 }
 
-func (s *KubernetesSuite) SetUpSuite(c *check.C) {
-	err := checkRequirements()
-	c.Assert(err, checker.IsNil, check.Commentf("requirements failed: %s", err))
+func init() {
+	constraint := fmt.Sprintf(">= %s", minVersionMinikube)
+	var err error
+	versionConstraintMinikube, err = semver.NewConstraint(constraint)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse minikube version constraint %q: %s", constraint, err))
+	}
 
-	err = setMinikubeParams()
+	constraint = fmt.Sprintf(">= %s", minVersionKubectl)
+	versionConstraintKubectl, err = semver.NewConstraint(constraint)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse kubectl version constraint %q: %s", constraint, err))
+	}
+}
+
+func (s *KubernetesSuite) SetUpSuite(c *check.C) {
+	errs := checkRequirements()
+	c.Assert(errs, checker.IsNil, check.Commentf("requirements failed: %s", errs))
+
+	err := setMinikubeParams()
 	c.Assert(err, checker.IsNil, check.Commentf("failed to set minikube parameters: %s", err))
 
 	onCI := os.Getenv("CI") != ""
@@ -253,24 +298,98 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 	}
 }
 
-func checkRequirements() error {
-	// TODO: Check for minimum versions.
-	var missing []string
-	minikubePath, err := exec.LookPath("minikube")
-	if err != nil {
-		missing = append(missing, "minikube")
-	} else {
-		runCommand(minikubePath, []string{"version"}, commandParams{})
-	}
-	if _, err := exec.LookPath("kubectl"); err != nil {
-		missing = append(missing, "kubectl")
+func checkRequirements() []error {
+	var reqErrors []error
+	if err := checkRequirement(
+		"minikube version",
+		func(output []byte) (*semver.Version, error) {
+			fields := strings.Fields(string(output))
+			versionField := fields[len(fields)-1]
+			v, err := semver.NewVersion(versionField)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse version %q: %s", versionField, err)
+			}
+			return v, nil
+		},
+		versionConstraintMinikube,
+		minVersionMinikube,
+	); err != nil {
+		reqErrors = append(reqErrors, err)
 	}
 
-	if len(missing) > 0 {
-		return fmt.Errorf("the following components must be installed: %s", strings.Join(missing, ", "))
+	if err := checkRequirement(
+		"kubectl version -o json",
+		func(output []byte) (*semver.Version, error) {
+			var kubectlOutput struct {
+				ClientVersion struct {
+					GitVersion string `json:"gitVersion"`
+				} `json:"clientVersion"`
+			}
+			if err := json.Unmarshal(output, &kubectlOutput); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal output: %s", err)
+			}
+			gitVersion := kubectlOutput.ClientVersion.GitVersion
+			if gitVersion == "" {
+				return nil, errors.New("git version from kubectl output is empty")
+			}
+			v, err := semver.NewVersion(gitVersion)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse version %q: %s", gitVersion, err)
+			}
+			return v, nil
+		},
+		versionConstraintKubectl,
+		minVersionKubectl,
+	); err != nil {
+		reqErrors = append(reqErrors, err)
+	}
+
+	return reqErrors
+}
+
+func checkRequirement(commandLine string, parser func(output []byte) (*semver.Version, error), versionConstraint *semver.Constraints, minVersion string) error {
+	cmdComponents := strings.Fields(commandLine)
+	switch len(cmdComponents) {
+	case 0:
+		return errors.New("command line not specified")
+	case 1:
+		return errors.New("version check arguments missing")
+	}
+
+	cmd := cmdComponents[0]
+	cmdPath, err := exec.LookPath(cmd)
+	if err != nil {
+		return errorRequirementMissing(cmd)
+	}
+
+	version, err := parseBinaryVersion(cmdPath, cmdComponents[1:], parser)
+	if err != nil {
+		return fmt.Errorf("failed to parse binary version: %s", err)
+	}
+	if chk := versionConstraint.Check(version); !chk {
+		return errorRequirementVersionMismatch{
+			component: cmd,
+			got:       version.String(),
+			min:       minVersion,
+		}
 	}
 
 	return nil
+}
+
+func parseBinaryVersion(cmd string, args []string, parser func([]byte) (*semver.Version, error)) (*semver.Version, error) {
+	var buf bytes.Buffer
+	if err := runCommand(cmd, args, commandParams{stdout: &buf}); err != nil {
+		return nil, fmt.Errorf("failed to run command: %s", err)
+	}
+	if buf.Len() == 0 {
+		return nil, errors.New("output of command is empty")
+	}
+	v, err := parser(buf.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse command output %q: %s", buf.String(), err)
+	}
+	return v, nil
 }
 
 func setMinikubeParams() error {
