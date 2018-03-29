@@ -141,7 +141,7 @@ dep-prune:
 
 kube-test-manifests:
 	@set -o errexit; \
-	mkdir integration/resources/k8s; \
+	mkdir integration/resources/k8s || true; \
 	sed 's/image: [^\s]\{1,\}/image: traefik:kube-test/' examples/k8s/traefik-deployment.yaml > integration/resources/k8s/traefik-deployment.test.yaml; \
 	sed 's/image: [^\s]\{1,\}/image: traefik:kube-test/' examples/k8s/traefik-ds.yaml > integration/resources/k8s/traefik-ds.test.yaml; \
 
