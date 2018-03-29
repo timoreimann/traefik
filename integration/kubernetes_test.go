@@ -318,7 +318,7 @@ func checkRequirements() []error {
 	}
 
 	if err := checkRequirement(
-		"kubectl version -o json",
+		"kubectl version --client=true --output=json",
 		func(output []byte) (*semver.Version, error) {
 			var kubectlOutput struct {
 				ClientVersion struct {
