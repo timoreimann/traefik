@@ -16,10 +16,10 @@ SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
 BIND_DIR := "dist"
 TRAEFIK_MOUNT := -v "$(CURDIR):/go/src/github.com/containous/traefik"
 
-MINIKUBE_VERSION_DEFAULT := v0.24.1
+MINIKUBE_VERSION_DEFAULT := v0.25.2
 MINIKUBE_VERSION := $(if $(MINIKUBE_VERSION),$(MINIKUBE_VERSION),$(MINIKUBE_VERSION_DEFAULT))
 
-KUBE_VERSION_DEFAULT := v1.8.0
+KUBE_VERSION_DEFAULT := v1.9.0
 KUBE_VERSION := $(if $(KUBE_VERSION),$(KUBE_VERSION),$(KUBE_VERSION_DEFAULT))
 
 TRAEFIK_DEV_IMAGE := traefik-dev$(if $(GIT_BRANCH),:$(subst /,-,$(GIT_BRANCH)))
