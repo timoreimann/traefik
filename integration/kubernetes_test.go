@@ -120,10 +120,9 @@ func (s *KubernetesSuite) SetUpSuite(c *check.C) {
 	errs := checkRequirements()
 	c.Assert(errs, checker.IsNil, check.Commentf("requirements failed: %s", errs))
 
-	err := setMinikubeParams()
-	c.Assert(err, checker.IsNil, check.Commentf("failed to set minikube parameters: %s", err))
-
 	onCI := os.Getenv("CI") != ""
+	err := setMinikubeParams(onCI)
+	c.Assert(err, checker.IsNil, check.Commentf("failed to set minikube parameters: %s", err))
 
 	err = startMinikube(onCI)
 	c.Assert(err, checker.IsNil, check.Commentf("failed to start minikube: %s", err))
@@ -392,7 +391,7 @@ func parseBinaryVersion(cmd string, args []string, parser func([]byte) (*semver.
 	return v, nil
 }
 
-func setMinikubeParams() error {
+func setMinikubeParams(onCI bool) error {
 	profile := os.Getenv(envVarMinikubeProfile)
 	if profile == "" {
 		t := time.Now().UTC()
@@ -416,11 +415,13 @@ func setMinikubeParams() error {
 		kubeconfig = kubeCfg
 	}
 
-	vBoxManagePath, err := exec.LookPath("VBoxManage")
-	if err != nil {
-		return fmt.Errorf("cannot find VBoxManage path: %s", err)
+	if !onCI {
+		vBoxManagePath, err := exec.LookPath("VBoxManage")
+		if err != nil {
+			return fmt.Errorf("cannot find VBoxManage path: %s", err)
+		}
+		minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("PATH=%s", path.Dir(vBoxManagePath)))
 	}
-	minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("PATH=%s", path.Dir(vBoxManagePath)))
 
 	return nil
 }
