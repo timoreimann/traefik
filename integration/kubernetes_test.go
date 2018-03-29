@@ -364,7 +364,7 @@ func checkRequirement(commandLine string, parser func(output []byte) (*semver.Ve
 
 	version, err := parseBinaryVersion(cmdPath, cmdComponents[1:], parser)
 	if err != nil {
-		return fmt.Errorf("failed to parse binary version: %s", err)
+		return fmt.Errorf("failed to parse binary version of %q: %s", cmdPath, err)
 	}
 	if chk := versionConstraint.Check(version); !chk {
 		return errorRequirementVersionMismatch{
