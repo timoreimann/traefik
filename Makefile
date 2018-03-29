@@ -14,14 +14,14 @@ TRAEFIK_ENVS := \
 SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
 
 BIND_DIR := "dist"
-TRAEFIK_MOUNT := -v "$(CURDIR):/go/src/github.com/containous/traefik"
-
 MINIKUBE_VERSION_DEFAULT := v0.25.2
 MINIKUBE_VERSION := $(if $(MINIKUBE_VERSION),$(MINIKUBE_VERSION),$(MINIKUBE_VERSION_DEFAULT))
 
 KUBE_VERSION_DEFAULT := v1.9.0
 KUBE_VERSION := $(if $(KUBE_VERSION),$(KUBE_VERSION),$(KUBE_VERSION_DEFAULT))
+TRAEFIK_MOUNT := -v "$(CURDIR)/$(BIND_DIR):/go/src/github.com/containous/traefik/$(BIND_DIR)"
 
+GIT_BRANCH := $(subst heads/,,$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null))
 TRAEFIK_DEV_IMAGE := traefik-dev$(if $(GIT_BRANCH),:$(subst /,-,$(GIT_BRANCH)))
 REPONAME := $(shell echo $(REPO) | tr '[:upper:]' '[:lower:]')
 TRAEFIK_IMAGE := $(if $(REPONAME),$(REPONAME),"containous/traefik")
@@ -29,7 +29,7 @@ INTEGRATION_OPTS := $(if $(MAKE_DOCKER_HOST),-e "DOCKER_HOST=$(MAKE_DOCKER_HOST)
 TRAEFIK_DOC_IMAGE := traefik-docs
 
 DOCKER_BUILD_ARGS := $(if $(DOCKER_VERSION), "--build-arg=DOCKER_VERSION=$(DOCKER_VERSION)",)
-DOCKER_RUN_OPTS := $(TRAEFIK_ENVS) --name=traefik-dev $(TRAEFIK_MOUNT) "$(TRAEFIK_DEV_IMAGE)"
+DOCKER_RUN_OPTS := $(TRAEFIK_ENVS) $(TRAEFIK_MOUNT) "$(TRAEFIK_DEV_IMAGE)"
 DOCKER_RUN_TRAEFIK := docker run $(INTEGRATION_OPTS) -it $(DOCKER_RUN_OPTS)
 DOCKER_RUN_TRAEFIK_NOTTY := docker run $(INTEGRATION_OPTS) -i $(DOCKER_RUN_OPTS)
 DOCKER_RUN_DOC_PORT := 8000
@@ -45,9 +45,6 @@ all: generate-webui build ## validate all checks, build linux binary, run all te
 	$(DOCKER_RUN_TRAEFIK) ./script/make.sh
 
 binary: generate-webui build ## build the linux binary
-	$(DOCKER_RUN_TRAEFIK) ./script/make.sh generate binary
-
-binary-only: build ## build the linux binary only (no web)
 	$(DOCKER_RUN_TRAEFIK) ./script/make.sh generate binary
 
 crossbinary: generate-webui build ## cross build the non-linux binaries
