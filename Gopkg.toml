@@ -251,6 +251,10 @@
   branch = "master"
   name = "github.com/miekg/dns"
 
+[[override]]
+  name = "github.com/spf13/pflag"
+  revision = "6a877ebacf28c5fc79846f4fcd380a5d9872b997"
+
 [prune]
   non-go = true
   go-tests = true
