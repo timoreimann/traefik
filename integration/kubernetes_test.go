@@ -248,6 +248,11 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 
 			fmt.Println("Traefik pod logs:")
 			runKubectl("logs", "deploy/traefik-ingress-controller")
+
+			if os.Getenv("CI") != "" {
+				fmt.Println("Disk size:")
+				runCommand("df", []string{"-h"}, commandParams{})
+			}
 		}
 	}()
 
