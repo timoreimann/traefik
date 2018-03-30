@@ -408,12 +408,15 @@ func setMinikubeParams(onCI bool) error {
 		minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_HOME=%s", minikubeHome))
 	}
 
-	kubeCfg := path.Join("/", os.Getenv("HOME"), ".kube", "config")
-	if _, err := os.Stat(kubeCfg); err == nil {
-		fmt.Printf("Using kubeconfig %q\n", kubeCfg)
-		minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("KUBECONFIG=%s", kubeCfg))
-		kubeconfig = kubeCfg
+	kubeconfig = path.Join("/", os.Getenv("HOME"), ".kube", "config")
+	if err := os.MkdirAll(filepath.Dir(kubeconfig), os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create kubeconfig directory %q: %s", filepath.Dir(kubeconfig), err)
 	}
+	if _, err := os.OpenFile(kubeconfig, os.O_RDWR|os.O_CREATE, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create empty kubeconfig file %q: %s", kubeconfig, err)
+	}
+	fmt.Printf("Using kubeconfig %q\n", kubeconfig)
+	minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 
 	if !onCI {
 		vBoxManagePath, err := exec.LookPath("VBoxManage")
