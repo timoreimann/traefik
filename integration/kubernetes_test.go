@@ -235,12 +235,16 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 	// Use Deployment manifest referencing current traefik binary.
 	patchedDeployment := createAbsolutePath(fmt.Sprintf("integration/resources/k8s/%s.test.yaml", workloadManifest))
 
-	// Validate Traefik is reachable.
-	err := Apply(
-		"traefik-rbac.yaml",
-		patchedDeployment,
-	)
+	// RBAC rules sometimes fail with "no matches for rbac.authorization.k8s.io/".
+	// Retrying help, so this looks like a bootstrapping issue.
+	err := try.Do(2*time.Minute, func() error {
+		return Apply("traefik-rbac.yaml")
+	})
 	c.Assert(err, checker.IsNil)
+
+	err = Apply(patchedDeployment)
+	c.Assert(err, checker.IsNil)
+
 	defer func() {
 		if c.Failed() {
 			fmt.Println("Traefik pod description:")
