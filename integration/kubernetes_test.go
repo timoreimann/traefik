@@ -403,10 +403,8 @@ func setMinikubeParams(onCI bool) error {
 	minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_PROFILE=%s", minikubeProfile))
 
 	minikubeHome := path.Join("/", os.Getenv("HOME"))
-	if _, err := os.Stat(path.Join(minikubeHome, ".minikube")); err == nil {
-		fmt.Printf("Using minikube home %q\n", minikubeHome)
-		minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_HOME=%s", minikubeHome))
-	}
+	fmt.Printf("Using minikube home %q\n", minikubeHome)
+	minikubeEnvVars = append(minikubeEnvVars, fmt.Sprintf("MINIKUBE_HOME=%s", minikubeHome))
 
 	kubeconfig = path.Join("/", os.Getenv("HOME"), ".kube", "config")
 	if err := os.MkdirAll(filepath.Dir(kubeconfig), os.ModePerm); err != nil {
