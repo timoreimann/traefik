@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	_ "k8s.io/client-go/dynamic"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 

@@ -1529,6 +1529,7 @@
   name = "k8s.io/client-go"
   packages = [
     "discovery",
+    "dynamic",
     "informers",
     "informers/admissionregistration",
     "informers/admissionregistration/v1alpha1",
@@ -1654,6 +1655,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "28e6d4263bbb07c766c6559c74fd475dea100a1afe185c7d26b37e0c7f72f176"
+  inputs-digest = "b7a9aadf787255d626a5f5abb1334cf4dea0890572b3d320c630c38143c96686"
   solver-name = "gps-cdcl"
   solver-version = 1
