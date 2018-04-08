@@ -24,10 +24,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	_ "k8s.io/client-go/dynamic"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -91,9 +94,11 @@ func (e errorRequirementVersionMismatch) Error() string {
 }
 
 type KubeConnection struct {
-	client   *kubernetes.Clientset
-	nodeHost string
-	master   *url.URL
+	client           *kubernetes.Clientset
+	dynamic          dynamic.ClientPool
+	apiResourcesByGK map[schema.GroupKind]metav1.APIResource
+	nodeHost         string
+	master           *url.URL
 }
 
 type KubernetesSuite struct {
@@ -238,12 +243,13 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 
 	// RBAC rules sometimes fail with "no matches for rbac.authorization.k8s.io/".
 	// Retrying help, so this looks like a bootstrapping issue.
-	err := try.Do(2*time.Minute, func() error {
-		return Apply("traefik-rbac.yaml")
-	})
+	// err := try.Do(10*time.Second, func() error {
+	// 	return s.Apply("", "traefik-rbac.yaml")
+	// })
+	err := s.Apply("", "traefik-rbac.yaml")
 	c.Assert(err, checker.IsNil)
 
-	err = Apply(patchedDeployment)
+	err = s.Apply(traefikNamespace, patchedDeployment)
 	c.Assert(err, checker.IsNil)
 
 	defer func() {
@@ -281,7 +287,7 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 	c.Assert(err, checker.IsNil, check.Commentf("traefik access"))
 
 	// Validate Traefik UI is reachable.
-	err = Apply(
+	err = s.Apply(traefikNamespace,
 		"ui.yaml",
 	)
 	c.Assert(err, checker.IsNil)
@@ -292,7 +298,7 @@ func (s *KubernetesSuite) doTestManifestExamples(c *check.C, workloadManifest st
 	c.Assert(err, checker.IsNil, check.Commentf("traefik UI access (req: %s host: %s headers: %s)", *req, req.Host, req.Header))
 
 	// Validate third-party service is routable through Traefik.
-	err = Apply(
+	err = s.Apply(metav1.NamespaceDefault,
 		"cheese-deployments.yaml",
 		"cheese-services.yaml",
 		"cheese-ingress.yaml",
@@ -547,27 +553,94 @@ func createKubeConnection() (conn *KubeConnection, err error) {
 		return nil, fmt.Errorf("failed to create clientset: %s", err)
 	}
 
+	dyn := dynamic.NewDynamicClientPool(config)
+
+	disc := discovery.NewDiscoveryClient(client.RESTClient())
+	resLists, err := disc.ServerResources()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list server resources: %s", err)
+	}
+	resourcesByGK := map[schema.GroupKind]metav1.APIResource{}
+	for _, resList := range resLists {
+		fmt.Printf("Found GroupVersion: %s\n", resList.GroupVersion)
+		for _, res := range resList.APIResources {
+			if strings.ContainsRune(res.Name, '/') {
+				continue
+			}
+			gv, err := schema.ParseGroupVersion(resList.GroupVersion)
+			if err != nil {
+				panic(fmt.Sprintf("failed to parse group version %q: %s", resList.GroupVersion, err))
+			}
+			if res.Group == "" {
+				res.Group = gv.Group
+			}
+			if res.Version == "" {
+				res.Version = gv.Version
+			}
+			fmt.Printf("Found APIResource: %#+v\n", res)
+			resourcesByGK[schema.GroupKind{Group: gv.Group, Kind: res.Kind}] = res
+		}
+	}
+
 	master, err := url.Parse(config.Host)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse host URL %q: %s", config.Host, err)
 	}
 
 	return &KubeConnection{
-		nodeHost: master.Hostname(),
-		master:   master,
-		client:   client,
+		nodeHost:         master.Hostname(),
+		master:           master,
+		client:           client,
+		dynamic:          dyn,
+		apiResourcesByGK: resourcesByGK,
 	}, nil
 }
 
-func Apply(names ...string) error {
+func (s *KubernetesSuite) Apply(namespace string, names ...string) error {
 	for _, name := range names {
 		manifest := name
 		if !path.IsAbs(manifest) {
 			manifest = createAbsoluteManifestPath(manifest)
 		}
 
-		if err := runKubectl("apply", "--filename", manifest); err != nil {
-			return fmt.Errorf("failed to apply manifest %s: %s", manifest, err)
+		file, err := os.Open(manifest)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		dec := yaml.NewYAMLToJSONDecoder(file)
+		for {
+			var obj unstructured.Unstructured
+			err := dec.Decode(&obj)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return err
+			}
+
+			gvk := obj.GroupVersionKind()
+			apiRes, ok := s.apiResourcesByGK[gvk.GroupKind()]
+			if !ok {
+				return fmt.Errorf("failed to find resource by group kind %s", gvk.GroupKind())
+			}
+
+			dynCl, err := s.dynamic.ClientForGroupVersionKind(gvk)
+			if err != nil {
+				return fmt.Errorf("failed to create dynamic client for GVR %q: %s", gvk, err)
+			}
+
+			ns := obj.GetNamespace()
+			if ns == "" {
+				ns = namespace
+			}
+			fmt.Printf("APIResource is: %#+v\n", apiRes)
+			res := dynCl.Resource(&apiRes, ns)
+
+			if _, err := res.Create(&obj); err != nil {
+				return fmt.Errorf("failed to apply manifest %s: %s", manifest, err)
+			}
 		}
 	}
 
