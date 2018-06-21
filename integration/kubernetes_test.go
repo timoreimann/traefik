@@ -36,8 +36,8 @@ import (
 
 const (
 	traefikNamespace          = "traefik"
-	kubernetesVersion         = "v1.9.0"
-	minVersionMinikube        = "v0.25.2"
+	kubernetesVersion         = "v1.10.0"
+	minVersionMinikube        = "v0.28.0"
 	minVersionKubectl         = "v1.7.0"
 	minikubeStartupTimeout    = 2 * time.Minute
 	minikubeDeleteTimeout     = 30 * time.Second
